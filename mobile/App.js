@@ -429,7 +429,6 @@ const MainNavigator = () => {
       )}
     </View>
   );
-  );
 };
 
 export default function App() {

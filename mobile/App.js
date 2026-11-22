@@ -25,6 +25,7 @@ import { PeopleScreen } from './src/screens/PeopleScreen';
 import { OverviewScreen } from './src/screens/OverviewScreen';
 import { AllFilesScreen } from './src/screens/AllFilesScreen';
 import { Header } from './src/components/Header';
+import { SplashScreen } from './src/components/SplashScreen';
 import { getApiUrl, setApiUrl } from './src/services/api';
 
 const SettingsScreen = () => {
@@ -128,6 +129,7 @@ const MainNavigator = () => {
   const { isAuthenticated, loading, user } = useAuth();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const [splashVisible, setSplashVisible] = useState(true);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'events' | 'organizer' | 'upload' | 'people' | 'settings'
   const [tabHistory, setTabHistory] = useState(['overview']);
@@ -188,241 +190,245 @@ const MainNavigator = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text style={styles.loadingText}>Connecting to SnapShare...</Text>
-      </View>
-    );
-  }
-
-  if (!isAuthenticated) {
-    if (authMode === 'register') {
-      return <RegisterScreen onNavigateToLogin={() => setAuthMode('login')} />;
-    }
-    return <LoginScreen onNavigateToRegister={() => setAuthMode('register')} />;
-  }
-
   return (
     <View style={styles.appContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0F19" translucent={true} />
 
-      {/* Global Persistent Header on Every Page with safe-area spacing */}
-      <View
-        style={[
-          styles.globalHeader,
-          {
-            paddingTop: headerPaddingTop,
-            height: totalHeaderHeight,
-          },
-        ]}
-      >
-        <View style={styles.headerInnerRow}>
-          <View style={styles.headerLeftGroup}>
-            {activeTab !== 'overview' && (
-              <TouchableOpacity
-                style={styles.headerBackBtn}
-                onPress={handleGoBack}
-                activeOpacity={0.7}
-                accessibilityLabel="Back"
-              >
-                <Ionicons name="arrow-back" size={headerBackIconSize} color="#E2E8F0" />
-              </TouchableOpacity>
-            )}
+      {/* Screen View: Auth Screens or Main App */}
+      {!loading && !isAuthenticated ? (
+        authMode === 'register' ? (
+          <RegisterScreen onNavigateToLogin={() => setAuthMode('login')} />
+        ) : (
+          <LoginScreen onNavigateToRegister={() => setAuthMode('register')} />
+        )
+      ) : !loading && isAuthenticated ? (
+        <>
+          {/* Global Persistent Header on Every Page with safe-area spacing */}
+          <View
+            style={[
+              styles.globalHeader,
+              {
+                paddingTop: headerPaddingTop,
+                height: totalHeaderHeight,
+              },
+            ]}
+          >
+            <View style={styles.headerInnerRow}>
+              <View style={styles.headerLeftGroup}>
+                {activeTab !== 'overview' && (
+                  <TouchableOpacity
+                    style={styles.headerBackBtn}
+                    onPress={handleGoBack}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Back"
+                  >
+                    <Ionicons name="arrow-back" size={headerBackIconSize} color="#E2E8F0" />
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={styles.brandRow}
-              onPress={handleGoHome}
-              activeOpacity={0.75}
-              accessibilityLabel="SnapShare Home"
-            >
-              <View style={styles.brandIconBox}>
-                <Ionicons name="sparkles" size={headerSparklesIconSize} color="#C084FC" />
+                <TouchableOpacity
+                  style={styles.brandRow}
+                  onPress={handleGoHome}
+                  activeOpacity={0.75}
+                  accessibilityLabel="SnapShare Home"
+                >
+                  <View style={styles.brandIconBox}>
+                    <Ionicons name="sparkles" size={headerSparklesIconSize} color="#C084FC" />
+                  </View>
+                  <Text style={styles.brandTitle}>
+                    Snap<Text style={{ color: '#C084FC' }}>Share</Text>
+                  </Text>
+                  <View style={styles.versionPill}>
+                    <Text style={styles.versionPillText}>v2.0</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.brandTitle}>
-                Snap<Text style={{ color: '#C084FC' }}>Share</Text>
-              </Text>
-              <View style={styles.versionPill}>
-                <Text style={styles.versionPillText}>v2.0</Text>
+
+              <View style={styles.headerRightRow}>
+                <TouchableOpacity
+                  style={styles.headerAvatarBtn}
+                  onPress={() => switchTab('settings')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.headerAvatarInitial}>
+                    {user?.name ? user.name[0].toUpperCase() : 'U'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.headerRightRow}>
-            <TouchableOpacity
-              style={styles.headerAvatarBtn}
-              onPress={() => switchTab('settings')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.headerAvatarInitial}>
-                {user?.name ? user.name[0].toUpperCase() : 'U'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Screen View */}
-      <View style={styles.screenContainer}>
-        {activeTab === 'overview' && (
-          <OverviewScreen
-            onNavigateTab={(tab) => switchTab(tab)}
-            onSelectCollection={() => switchTab('events')}
-          />
-        )}
-        {activeTab === 'files' && (
-          <AllFilesScreen onNavigateTab={(tab) => switchTab(tab)} />
-        )}
-        {activeTab === 'events' && (
-          <CollectionsScreen
-            onOpenUpload={(colId) => {
-              if (colId) setTargetCollectionId(colId);
-              switchTab('upload');
-            }}
-          />
-        )}
-        {activeTab === 'organizer' && <SmartOrganizerScreen />}
-        {activeTab === 'upload' && (
-          <UploadScreen
-            defaultCollectionId={targetCollectionId}
-            onUploadComplete={() => {
-              setTargetCollectionId('');
-              switchTab('organizer');
-            }}
-          />
-        )}
-        {activeTab === 'people' && <PeopleScreen />}
-        {activeTab === 'settings' && <SettingsScreen />}
-      </View>
-
-      {/* Modern 5-Tab Responsive Bottom Navigation Bar */}
-      <View
-        style={[
-          styles.bottomNav,
-          {
-            height: totalNavHeight,
-            paddingBottom: safeBottom,
-          },
-        ]}
-      >
-        <View style={styles.navInnerRow}>
-          <TouchableOpacity
-            style={styles.navTab}
-            onPress={() => switchTab('overview')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={activeTab === 'overview' ? 'home' : 'home-outline'}
-              size={navIconSize}
-              color={activeTab === 'overview' ? '#C084FC' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { fontSize: navFontSize },
-                activeTab === 'overview' && styles.navLabelActive,
-              ]}
-            >
-              Overview
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navTab}
-            onPress={() => switchTab('events')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={activeTab === 'events' ? 'folder' : 'folder-outline'}
-              size={navIconSize}
-              color={activeTab === 'events' ? '#C084FC' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { fontSize: navFontSize },
-                activeTab === 'events' && styles.navLabelActive,
-              ]}
-            >
-              Events
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabUpload, { marginTop: fabMarginTop }]}
-            onPress={() => switchTab('upload')}
-            activeOpacity={0.85}
-          >
-            <View
-              style={[
-                styles.uploadFab,
-                {
-                  width: fabButtonSize,
-                  height: fabButtonSize,
-                  borderRadius: fabButtonSize / 2,
-                },
-                activeTab === 'upload' && styles.uploadFabActive,
-              ]}
-            >
-              <Ionicons name="camera" size={fabIconSize} color="#FFFFFF" />
             </View>
-            <Text
-              style={[
-                styles.navLabelUpload,
-                { fontSize: navFontSize },
-                activeTab === 'upload' && styles.navLabelUploadActive,
-              ]}
-            >
-              Upload
-            </Text>
-          </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            style={styles.navTab}
-            onPress={() => switchTab('organizer')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={activeTab === 'organizer' ? 'sparkles' : 'sparkles-outline'}
-              size={navIconSize}
-              color={activeTab === 'organizer' ? '#C084FC' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { fontSize: navFontSize },
-                activeTab === 'organizer' && styles.navLabelActive,
-              ]}
-              numberOfLines={1}
-            >
-              AI Organizer
-            </Text>
-          </TouchableOpacity>
+          {/* Screen View */}
+          <View style={styles.screenContainer}>
+            {activeTab === 'overview' && (
+              <OverviewScreen
+                onNavigateTab={(tab) => switchTab(tab)}
+                onSelectCollection={() => switchTab('events')}
+              />
+            )}
+            {activeTab === 'files' && (
+              <AllFilesScreen onNavigateTab={(tab) => switchTab(tab)} />
+            )}
+            {activeTab === 'events' && (
+              <CollectionsScreen
+                onOpenUpload={(colId) => {
+                  if (colId) setTargetCollectionId(colId);
+                  switchTab('upload');
+                }}
+              />
+            )}
+            {activeTab === 'organizer' && <SmartOrganizerScreen />}
+            {activeTab === 'upload' && (
+              <UploadScreen
+                defaultCollectionId={targetCollectionId}
+                onUploadComplete={() => {
+                  setTargetCollectionId('');
+                  switchTab('organizer');
+                }}
+              />
+            )}
+            {activeTab === 'people' && <PeopleScreen />}
+            {activeTab === 'settings' && <SettingsScreen />}
+          </View>
 
-          <TouchableOpacity
-            style={styles.navTab}
-            onPress={() => switchTab('people')}
-            activeOpacity={0.7}
+          {/* Modern 5-Tab Responsive Bottom Navigation Bar */}
+          <View
+            style={[
+              styles.bottomNav,
+              {
+                height: totalNavHeight,
+                paddingBottom: safeBottom,
+              },
+            ]}
           >
-            <Ionicons
-              name={activeTab === 'people' ? 'people' : 'people-outline'}
-              size={navIconSize}
-              color={activeTab === 'people' ? '#C084FC' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { fontSize: navFontSize },
-                activeTab === 'people' && styles.navLabelActive,
-              ]}
-            >
-              People
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <View style={styles.navInnerRow}>
+              <TouchableOpacity
+                style={styles.navTab}
+                onPress={() => switchTab('overview')}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={activeTab === 'overview' ? 'home' : 'home-outline'}
+                  size={navIconSize}
+                  color={activeTab === 'overview' ? '#C084FC' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.navLabel,
+                    { fontSize: navFontSize },
+                    activeTab === 'overview' && styles.navLabelActive,
+                  ]}
+                >
+                  Overview
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navTab}
+                onPress={() => switchTab('events')}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={activeTab === 'events' ? 'folder' : 'folder-outline'}
+                  size={navIconSize}
+                  color={activeTab === 'events' ? '#C084FC' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.navLabel,
+                    { fontSize: navFontSize },
+                    activeTab === 'events' && styles.navLabelActive,
+                  ]}
+                >
+                  Events
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.navTabUpload, { marginTop: fabMarginTop }]}
+                onPress={() => switchTab('upload')}
+                activeOpacity={0.85}
+              >
+                <View
+                  style={[
+                    styles.uploadFab,
+                    {
+                      width: fabButtonSize,
+                      height: fabButtonSize,
+                      borderRadius: fabButtonSize / 2,
+                    },
+                    activeTab === 'upload' && styles.uploadFabActive,
+                  ]}
+                >
+                  <Ionicons name="camera" size={fabIconSize} color="#FFFFFF" />
+                </View>
+                <Text
+                  style={[
+                    styles.navLabelUpload,
+                    { fontSize: navFontSize },
+                    activeTab === 'upload' && styles.navLabelUploadActive,
+                  ]}
+                >
+                  Upload
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navTab}
+                onPress={() => switchTab('organizer')}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={activeTab === 'organizer' ? 'sparkles' : 'sparkles-outline'}
+                  size={navIconSize}
+                  color={activeTab === 'organizer' ? '#C084FC' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.navLabel,
+                    { fontSize: navFontSize },
+                    activeTab === 'organizer' && styles.navLabelActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  AI Organizer
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navTab}
+                onPress={() => switchTab('people')}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={activeTab === 'people' ? 'people' : 'people-outline'}
+                  size={navIconSize}
+                  color={activeTab === 'people' ? '#C084FC' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.navLabel,
+                    { fontSize: navFontSize },
+                    activeTab === 'people' && styles.navLabelActive,
+                  ]}
+                >
+                  People
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      ) : null}
+
+      {/* Clean, Modern Animated Splash Screen (stays at least 2 seconds) */}
+      {splashVisible && (
+        <SplashScreen
+          isReady={!loading}
+          onFinish={() => setSplashVisible(false)}
+        />
+      )}
     </View>
+  );
   );
 };
 

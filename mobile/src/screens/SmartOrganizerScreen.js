@@ -909,11 +909,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 120,
   },
   listContent: {
     padding: 12,
-    paddingBottom: 80,
+    paddingBottom: 120,
   },
   headerArea: {
     marginBottom: 16,

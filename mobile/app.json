@@ -28,6 +28,16 @@
         "READ_MEDIA_IMAGES"
       ]
     },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0B0F19",
+      "translucent": true
+    },
+    "androidNavigationBar": {
+      "visible": "visible",
+      "barStyle": "light-content",
+      "backgroundColor": "#090D18"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },

@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   filesListContent: {
     paddingHorizontal: 14,
     paddingTop: 8,
-    paddingBottom: 90,
+    paddingBottom: 120,
   },
   gridContainer: {
     paddingHorizontal: 14,

@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 90,
+    paddingBottom: 120,
   },
   centerLoading: {
     flex: 1,

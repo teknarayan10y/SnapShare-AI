@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 120,
   },
   consentCard: {
     backgroundColor: '#0F172A',

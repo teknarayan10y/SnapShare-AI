@@ -13,8 +13,11 @@ try {
   };
 }
 
-// Default to localhost for web/iOS simulator, 10.0.2.2 for Android emulator
+// Default host: production Render backend in release, localhost in dev
 const getDefaultHost = () => {
+  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
+    return 'https://snapshare-backend-ucxu.onrender.com';
+  }
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:5000';
   }

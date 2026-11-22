@@ -1,0 +1,33 @@
+{
+  "name": "snapshare-backend",
+  "version": "1.0.0",
+  "description": "Universal QR-Based File Sharing & Cloud Storage Platform Backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "clean": "node utils/clearAllData.js",
+    "role": "node utils/setRole.js",
+    "seed": "node utils/seedData.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "axios": "^1.21.1",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mime-types": "^2.1.35",
+    "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.16.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5",
+    "uuid": "^11.0.5"
+  }
+}

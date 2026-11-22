@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets (Crucial: do not commit real passwords/keys!)
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+ai-service/.env
+
+# Local Database & Upload files
+backend/data/
+backend/uploads/
+uploads/
+
+# Build artifacts & caches
+dist/
+build/
+frontend/dist/
+frontend/build/
+.expo/
+.expo-shared/
+web-build/
+*.aab
+*.apk
+
+# Python caches & virtual environments
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

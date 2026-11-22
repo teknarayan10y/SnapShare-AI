@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "SnapShare AI",
+    "slug": "snapshare-ai",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "snapshare",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.snapshare.ai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SnapShare requires camera access to take event photographs and scan collection QR codes.",
+        "NSPhotoLibraryUsageDescription": "SnapShare needs access to your photo library to pick and upload event memories to the cloud."
+      }
+    },
+    "android": {
+      "package": "com.snapshare.ai",
+      "adaptiveIcon": {
+        "backgroundColor": "#070B14",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

@@ -1,0 +1,726 @@
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  TextInput,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { RegisterScreen } from './src/screens/RegisterScreen';
+import { CollectionsScreen } from './src/screens/CollectionsScreen';
+import { SmartOrganizerScreen } from './src/screens/SmartOrganizerScreen';
+import { UploadScreen } from './src/screens/UploadScreen';
+import { PeopleScreen } from './src/screens/PeopleScreen';
+import { OverviewScreen } from './src/screens/OverviewScreen';
+import { AllFilesScreen } from './src/screens/AllFilesScreen';
+import { Header } from './src/components/Header';
+import { getApiUrl, setApiUrl } from './src/services/api';
+
+const SettingsScreen = () => {
+  const { user, logout } = useAuth();
+  const [serverUrl, setServerUrl] = useState('');
+
+  React.useEffect(() => {
+    getApiUrl().then(setServerUrl);
+  }, []);
+
+  const handleSaveServer = async () => {
+    if (!serverUrl) return;
+    await setApiUrl(serverUrl);
+    Alert.alert('Saved', 'Server connection URL updated.');
+  };
+
+  return (
+    <View style={styles.tabContent}>
+      <Header title="App Settings" subtitle="Account details & device synchronization" />
+
+      <ScrollView contentContainerStyle={styles.settingsScroll}>
+        {/* User Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitial}>
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
+            </Text>
+          </View>
+          <View style={styles.profileDetails}>
+            <Text style={styles.profileName}>{user?.name || 'SnapShare User'}</Text>
+            <Text style={styles.profileEmail}>{user?.email || 'user@snapshare.com'}</Text>
+            <View style={styles.planBadge}>
+              <Text style={styles.planBadgeText}>Pro SaaS Member</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Storage Quota Bar */}
+        <View style={styles.sectionCard}>
+          <View style={styles.quotaHeader}>
+            <Text style={styles.sectionCardTitle}>Cloud Storage Quota</Text>
+            <Text style={styles.quotaPercent}>1% Used</Text>
+          </View>
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: '4%' }]} />
+          </View>
+          <Text style={styles.quotaSub}>27 MB of 5,120 MB (5 GB Free Cloudinary CDN)</Text>
+        </View>
+
+        {/* Backend Connection */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionCardTitle}>Backend Server Host</Text>
+          <Text style={styles.sectionCardSub}>
+            URL where SnapShare API & Python AI microservice are running.
+          </Text>
+          <TextInput
+            style={styles.serverInput}
+            value={serverUrl}
+            onChangeText={setServerUrl}
+            placeholder="http://192.168.x.x:5000"
+            placeholderTextColor="#64748B"
+            autoCapitalize="none"
+          />
+          <TouchableOpacity style={styles.saveServerBtn} onPress={handleSaveServer}>
+            <Text style={styles.saveServerBtnText}>Update Connection URL</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Architecture Specs */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionCardTitle}>Cross-Platform Features</Text>
+          <View style={styles.featureItem}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Text style={styles.featureText}>YuNet Neural Face Detection (OpenCV 5.0)</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Text style={styles.featureText}>SFace 128-dim Biometric Embeddings</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Deterministic Combination Folders (Rules A–G)</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Universal QR Visitor Sharing & Uploads</Text>
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          <Text style={styles.logoutBtnText}>Sign Out of SnapShare</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+};
+
+const MainNavigator = () => {
+  const { isAuthenticated, loading, user } = useAuth();
+  const { width } = useWindowDimensions();
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'events' | 'organizer' | 'upload' | 'people' | 'settings'
+  const [tabHistory, setTabHistory] = useState(['overview']);
+  const [targetCollectionId, setTargetCollectionId] = useState('');
+
+  // Dynamically scale icon & tab dimensions according to mobile screen size
+  const effectiveWidth = Math.min(width, 480);
+  const scale = effectiveWidth / 390; // normalize around standard iPhone / modern Android width
+  const navIconSize = Math.round(Math.min(24, Math.max(18, 21 * scale)));
+  const fabIconSize = Math.round(Math.min(26, Math.max(19, 22 * scale)));
+  const fabButtonSize = Math.round(Math.min(48, Math.max(38, 44 * scale)));
+  const navFontSize = Math.min(10.5, Math.max(8.5, 9.5 * scale));
+  const navBarHeight = Platform.OS === 'ios'
+    ? Math.round(Math.min(84, Math.max(72, 78 * scale)))
+    : Math.round(Math.min(68, Math.max(56, 62 * scale)));
+  const fabMarginTop = -Math.round(fabButtonSize * 0.34);
+  const headerBackIconSize = Math.round(Math.min(22, Math.max(17, 20 * scale)));
+  const headerSparklesIconSize = Math.round(Math.min(18, Math.max(14, 16 * scale)));
+
+  const switchTab = (tab) => {
+    if (tab === activeTab) return;
+    setTabHistory((prev) => (tab === 'overview' ? ['overview'] : [...prev.filter((t) => t !== tab), tab]));
+    setActiveTab(tab);
+  };
+
+  const handleGoHome = () => {
+    if (activeTab === 'overview') return;
+    setActiveTab('overview');
+    setTabHistory(['overview']);
+  };
+
+  const handleGoBack = () => {
+    if (tabHistory.length > 1) {
+      const nextHistory = [...tabHistory];
+      nextHistory.pop(); // remove current active tab
+      const prevTab = nextHistory[nextHistory.length - 1];
+      setTabHistory(nextHistory.length > 0 ? nextHistory : ['overview']);
+      setActiveTab(prevTab || 'overview');
+    } else {
+      setActiveTab('overview');
+      setTabHistory(['overview']);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#8B5CF6" />
+        <Text style={styles.loadingText}>Connecting to SnapShare...</Text>
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (authMode === 'register') {
+      return <RegisterScreen onNavigateToLogin={() => setAuthMode('login')} />;
+    }
+    return <LoginScreen onNavigateToRegister={() => setAuthMode('register')} />;
+  }
+
+  return (
+    <SafeAreaView style={styles.appContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
+
+      {/* Global Persistent Header on Every Page */}
+      <View style={styles.globalHeader}>
+        <View style={styles.headerLeftGroup}>
+          {activeTab !== 'overview' && (
+            <TouchableOpacity
+              style={styles.headerBackBtn}
+              onPress={handleGoBack}
+              activeOpacity={0.7}
+              accessibilityLabel="Back"
+            >
+              <Ionicons name="arrow-back" size={headerBackIconSize} color="#E2E8F0" />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.brandRow}
+            onPress={handleGoHome}
+            activeOpacity={0.75}
+            accessibilityLabel="SnapShare Home"
+          >
+            <View style={styles.brandIconBox}>
+              <Ionicons name="sparkles" size={headerSparklesIconSize} color="#C084FC" />
+            </View>
+            <Text style={styles.brandTitle}>
+              Snap<Text style={{ color: '#C084FC' }}>Share</Text>
+            </Text>
+            <View style={styles.versionPill}>
+              <Text style={styles.versionPillText}>v2.0</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerRightRow}>
+          <TouchableOpacity
+            style={styles.headerAvatarBtn}
+            onPress={() => switchTab('settings')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.headerAvatarInitial}>
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Screen View */}
+      <View style={styles.screenContainer}>
+        {activeTab === 'overview' && (
+          <OverviewScreen
+            onNavigateTab={(tab) => switchTab(tab)}
+            onSelectCollection={() => switchTab('events')}
+          />
+        )}
+        {activeTab === 'files' && (
+          <AllFilesScreen onNavigateTab={(tab) => switchTab(tab)} />
+        )}
+        {activeTab === 'events' && (
+          <CollectionsScreen
+            onOpenUpload={(colId) => {
+              if (colId) setTargetCollectionId(colId);
+              switchTab('upload');
+            }}
+          />
+        )}
+        {activeTab === 'organizer' && <SmartOrganizerScreen />}
+        {activeTab === 'upload' && (
+          <UploadScreen
+            defaultCollectionId={targetCollectionId}
+            onUploadComplete={() => {
+              setTargetCollectionId('');
+              switchTab('organizer');
+            }}
+          />
+        )}
+        {activeTab === 'people' && <PeopleScreen />}
+        {activeTab === 'settings' && <SettingsScreen />}
+      </View>
+
+      {/* Modern 5-Tab Responsive Bottom Navigation Bar */}
+      <View style={[styles.bottomNav, { height: navBarHeight }]}>
+        <TouchableOpacity
+          style={styles.navTab}
+          onPress={() => switchTab('overview')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={activeTab === 'overview' ? 'home' : 'home-outline'}
+            size={navIconSize}
+            color={activeTab === 'overview' ? '#C084FC' : '#64748B'}
+          />
+          <Text
+            style={[
+              styles.navLabel,
+              { fontSize: navFontSize },
+              activeTab === 'overview' && styles.navLabelActive,
+            ]}
+          >
+            Overview
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navTab}
+          onPress={() => switchTab('events')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={activeTab === 'events' ? 'folder' : 'folder-outline'}
+            size={navIconSize}
+            color={activeTab === 'events' ? '#C084FC' : '#64748B'}
+          />
+          <Text
+            style={[
+              styles.navLabel,
+              { fontSize: navFontSize },
+              activeTab === 'events' && styles.navLabelActive,
+            ]}
+          >
+            Events
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.navTabUpload, { marginTop: fabMarginTop }]}
+          onPress={() => switchTab('upload')}
+          activeOpacity={0.85}
+        >
+          <View
+            style={[
+              styles.uploadFab,
+              {
+                width: fabButtonSize,
+                height: fabButtonSize,
+                borderRadius: fabButtonSize / 2,
+              },
+              activeTab === 'upload' && styles.uploadFabActive,
+            ]}
+          >
+            <Ionicons name="camera" size={fabIconSize} color="#FFFFFF" />
+          </View>
+          <Text
+            style={[
+              styles.navLabelUpload,
+              { fontSize: navFontSize },
+              activeTab === 'upload' && styles.navLabelUploadActive,
+            ]}
+          >
+            Upload
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navTab}
+          onPress={() => switchTab('organizer')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={activeTab === 'organizer' ? 'sparkles' : 'sparkles-outline'}
+            size={navIconSize}
+            color={activeTab === 'organizer' ? '#C084FC' : '#64748B'}
+          />
+          <Text
+            style={[
+              styles.navLabel,
+              { fontSize: navFontSize },
+              activeTab === 'organizer' && styles.navLabelActive,
+            ]}
+            numberOfLines={1}
+          >
+            AI Organizer
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navTab}
+          onPress={() => switchTab('people')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={activeTab === 'people' ? 'people' : 'people-outline'}
+            size={navIconSize}
+            color={activeTab === 'people' ? '#C084FC' : '#64748B'}
+          />
+          <Text
+            style={[
+              styles.navLabel,
+              { fontSize: navFontSize },
+              activeTab === 'people' && styles.navLabelActive,
+            ]}
+          >
+            People
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <MainNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: '#070B14',
+  },
+  globalHeader: {
+    height: 54,
+    backgroundColor: '#0B0F19',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 50,
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerBackBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  versionPill: {
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 2,
+  },
+  versionPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#A78BFA',
+    textTransform: 'uppercase',
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerAvatarBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarInitial: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  screenContainer: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    backgroundColor: '#070B14',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#090D18',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 22 : 8,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    height: Platform.OS === 'ios' ? 78 : 62,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  navTab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    paddingVertical: 2,
+  },
+  navLabel: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+  },
+  navLabelActive: {
+    color: '#F8FAFC',
+    fontWeight: '700',
+  },
+  navTabUpload: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginTop: -16,
+  },
+  uploadFab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: '#090D18',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  uploadFabActive: {
+    backgroundColor: '#9333EA',
+    borderColor: '#C084FC',
+  },
+  navLabelUpload: {
+    fontSize: 9.5,
+    color: '#A78BFA',
+    marginTop: 2,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  navLabelUploadActive: {
+    color: '#FFFFFF',
+  },
+  tabContent: {
+    flex: 1,
+    backgroundColor: '#070B14',
+  },
+  settingsScroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+  },
+  profileAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  profileInitial: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  profileDetails: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  profileEmail: {
+    fontSize: 12.5,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  planBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  planBadgeText: {
+    fontSize: 10.5,
+    color: '#C4B5FD',
+    fontWeight: '700',
+  },
+  sectionCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 16,
+  },
+  sectionCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginBottom: 4,
+  },
+  sectionCardSub: {
+    fontSize: 11.5,
+    color: '#94A3B8',
+    marginBottom: 12,
+  },
+  quotaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quotaPercent: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: '#1E293B',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#8B5CF6',
+    borderRadius: 4,
+  },
+  quotaSub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  serverInput: {
+    height: 42,
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    color: '#FFFFFF',
+    paddingHorizontal: 12,
+    fontSize: 12.5,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  saveServerBtn: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveServerBtnText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  featureText: {
+    fontSize: 12,
+    color: '#CBD5E1',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    paddingVertical: 14,
+    borderRadius: 14,
+    gap: 8,
+    marginTop: 8,
+  },
+  logoutBtnText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});

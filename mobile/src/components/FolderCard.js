@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const CATEGORY_THEMES = {
+  Group: { color: '#EC4899', bg: 'rgba(236, 72, 153, 0.12)', border: '#DB2777', icon: 'people' },
   'Group Photos': { color: '#6366F1', bg: 'rgba(99, 102, 241, 0.12)', border: '#4F46E5', icon: 'people' },
+  'Four People': { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)', border: '#D97706', icon: 'grid' },
   'Four Member Groups': { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)', border: '#D97706', icon: 'grid' },
   'Three People': { color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)', border: '#059669', icon: 'people-outline' },
   'Two People': { color: '#06B6D4', bg: 'rgba(6, 182, 212, 0.12)', border: '#0891B2', icon: 'person-add' },
+  Solo: { color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.12)', border: '#7C3AED', icon: 'person' },
   'Individual Photos': { color: '#EC4899', bg: 'rgba(236, 72, 153, 0.12)', border: '#DB2777', icon: 'person' },
   'People': { color: '#E11D48', bg: 'rgba(225, 29, 72, 0.12)', border: '#BE123C', icon: 'folder-outline' },
   'Needs Review': { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)', border: '#DC2626', icon: 'alert-circle' },

@@ -31,19 +31,19 @@ class SmartFolderService {
 
     // Strict 5-tier classification conforming to Master Rules A through F:
     const isLargeGroup = comp === 'group' || personCount > 4;
-    const isFourMember = !isLargeGroup && (comp === 'four_person' || personCount === 4 || rawCategories.includes('Four-Member Groups') || rawCategories.includes('Four Member Groups') || rawCategories.includes('Four People'));
-    const isThreeMember = !isLargeGroup && !isFourMember && (comp === 'three_person' || personCount === 3 || rawCategories.includes('Three-Member Groups') || rawCategories.includes('Three Member Groups') || rawCategories.includes('Three People'));
-    const isPair = !isLargeGroup && !isFourMember && !isThreeMember && (comp === 'pair' || personCount === 2 || rawCategories.includes('Pair Photos') || rawCategories.includes('Two Member Groups') || rawCategories.includes('Two People'));
-    const isSinglePerson = !isLargeGroup && !isFourMember && !isThreeMember && !isPair && (comp === 'single_person' || personCount === 1 || rawCategories.includes('Single Photos') || rawCategories.includes('Individual Photos'));
+    const isFourMember = !isLargeGroup && (comp === 'four_people' || comp === 'four_person' || personCount === 4 || rawCategories.includes('Four People') || rawCategories.includes('Four-Member Groups') || rawCategories.includes('Four Member Groups'));
+    const isThreeMember = !isLargeGroup && !isFourMember && (comp === 'three_people' || comp === 'three_person' || personCount === 3 || rawCategories.includes('Three People') || rawCategories.includes('Three-Member Groups') || rawCategories.includes('Three Member Groups'));
+    const isPair = !isLargeGroup && !isFourMember && !isThreeMember && (comp === 'two_people' || comp === 'pair' || personCount === 2 || rawCategories.includes('Two People') || rawCategories.includes('Pair Photos') || rawCategories.includes('Two Member Groups'));
+    const isSinglePerson = !isLargeGroup && !isFourMember && !isThreeMember && !isPair && (comp === 'solo' || comp === 'single_person' || personCount === 1 || rawCategories.includes('Solo') || rawCategories.includes('Single Photos') || rawCategories.includes('Individual Photos'));
 
     let targetCategories = [];
 
     if (isLargeGroup) {
-      // RULE A: >4 people strictly to Group Photos
-      targetCategories = ['Group Photos'];
+      // RULE A: >=5 people strictly to Group
+      targetCategories = ['Group'];
     } else if (isFourMember) {
-      // RULE B: Exactly 4 people strictly to Four Member Groups
-      targetCategories = ['Four Member Groups'];
+      // RULE B: Exactly 4 people strictly to Four People
+      targetCategories = ['Four People'];
     } else if (isThreeMember) {
       // RULE C: Exactly 3 people strictly to Three People
       targetCategories = ['Three People'];
@@ -51,23 +51,25 @@ class SmartFolderService {
       // RULE D: Exactly 2 people strictly to Two People
       targetCategories = ['Two People'];
     } else if (isSinglePerson) {
-      // RULE E: Exactly 1 person strictly to Individual Photos
-      targetCategories = ['Individual Photos'];
+      // RULE E: Exactly 1 person strictly to Solo
+      targetCategories = ['Solo'];
     } else {
       // RULE F: Non-human / scenery / objects - strictly exclude all person/group folders!
       targetCategories = rawCategories.filter(
         (c) =>
           ![
+            'Group',
             'Group Photos',
+            'Four People',
             'Four Member Groups',
             'Four-Member Groups',
-            'Four People',
+            'Three People',
             'Three Member Groups',
             'Three-Member Groups',
-            'Three People',
+            'Two People',
             'Pair Photos',
             'Two Member Groups',
-            'Two People',
+            'Solo',
             'Single Photos',
             'Individual Photos',
             'Person',

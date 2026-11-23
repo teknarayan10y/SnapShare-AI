@@ -44,11 +44,11 @@ class FaceOrganizationService {
   async ensureBaseFolders(userId, collectionId = null) {
     const baseFolders = [
       { name: 'People', category: 'People', icon: 'Users', color: '#8B5CF6', isRoot: true },
-      { name: 'Individual Photos', category: 'Individual Photos', icon: 'User', color: '#EC4899', parent: 'People' },
+      { name: 'Solo', category: 'Solo', icon: 'User', color: '#8B5CF6', parent: 'People' },
       { name: 'Two People', category: 'Two People', icon: 'UserCheck', color: '#3B82F6', parent: 'People' },
       { name: 'Three People', category: 'Three People', icon: 'Users', color: '#10B981', parent: 'People' },
-      { name: 'Four Member Groups', category: 'Four Member Groups', icon: 'Users', color: '#F59E0B', parent: 'People' },
-      { name: 'Group Photos', category: 'Group Photos', icon: 'Users', color: '#6366F1', parent: 'People' },
+      { name: 'Four People', category: 'Four People', icon: 'Users', color: '#F59E0B', parent: 'People' },
+      { name: 'Group', category: 'Group', icon: 'Sparkles', color: '#EC4899', parent: 'People' },
       { name: 'Needs Review', category: 'Needs Review', icon: 'AlertCircle', color: '#EF4444', parent: 'People' },
     ];
 
@@ -57,10 +57,11 @@ class FaceOrganizationService {
     for (const b of baseFolders) {
       // Check for folder by new name OR legacy alias name
       const aliasNames = [b.name];
+      if (b.name === 'Solo') aliasNames.push('Individual Photos', 'Single Photos', 'Solo Photos');
       if (b.name === 'Two People') aliasNames.push('Two Member Groups', 'Pair Photos');
       if (b.name === 'Three People') aliasNames.push('Three Member Groups');
-      if (b.name === 'Four Member Groups') aliasNames.push('Four People');
-      if (b.name === 'Individual Photos') aliasNames.push('Single Photos');
+      if (b.name === 'Four People') aliasNames.push('Four Member Groups');
+      if (b.name === 'Group') aliasNames.push('Group Photos');
 
       let folder = await SmartFolder.findOne({
         userId,
@@ -82,17 +83,22 @@ class FaceOrganizationService {
         // Upgrade legacy folder name to official name
         folder.name = b.name;
         folder.category = b.category;
+        folder.icon = b.icon;
+        folder.color = b.color;
         await folder.save();
       }
       folderMap[b.name] = folder;
     }
 
     // Set convenience alias mappings
+    folderMap['Individual Photos'] = folderMap['Solo'];
+    folderMap['Single Photos'] = folderMap['Solo'];
+    folderMap['Solo Photos'] = folderMap['Solo'];
     folderMap['Two Member Groups'] = folderMap['Two People'];
-    folderMap['Three Member Groups'] = folderMap['Three People'];
     folderMap['Pair Photos'] = folderMap['Two People'];
-    folderMap['Single Photos'] = folderMap['Individual Photos'];
-    folderMap['Four People'] = folderMap['Four Member Groups'];
+    folderMap['Three Member Groups'] = folderMap['Three People'];
+    folderMap['Four Member Groups'] = folderMap['Four People'];
+    folderMap['Group Photos'] = folderMap['Group'];
 
     // Set parent relationships
     for (const b of baseFolders) {
@@ -186,11 +192,12 @@ class FaceOrganizationService {
     faces = [],
     matchedProfiles = [],
     hasConsent = false,
+    isLowConfidence = false,
   }) {
     const baseFolders = await this.ensureBaseFolders(userId, collectionId);
     const assignedFolders = [];
 
-    // Helper to add file to a smart folder
+    // Helper to add file to a smart folder and update two-way references
     const addToFileAndFolder = async (smartFolder) => {
       if (!smartFolder) return;
       if (!Array.isArray(smartFolder.fileIds)) {
@@ -206,247 +213,190 @@ class FaceOrganizationService {
       if (!file.smartFolderIds.map(String).includes(String(smartFolder._id))) {
         file.smartFolderIds.push(smartFolder._id);
       }
-      assignedFolders.push(smartFolder);
+      if (!assignedFolders.some((f) => String(f._id) === String(smartFolder._id))) {
+        assignedFolders.push(smartFolder);
+      }
     };
 
-    // Rule A: More than four people (faceCount > 4)
-    if (faceCount > 4) {
-      await addToFileAndFolder(baseFolders['Group Photos']);
-      await file.save();
-      return { assignedFolders, ruleApplied: 'Rule A (Group Photos)' };
-    }
+    // Helper to purge file from all conflicting / incorrect human & general folders (Requirement #6 & #8)
+    const cleanOtherFolders = async (keepFolders) => {
+      const keepFolderIds = new Set(keepFolders.map((f) => String(f._id)));
+      const baseHumanNames = [
+        'Solo', 'Two People', 'Three People', 'Four People', 'Group',
+        'Individual Photos', 'Single Photos', 'Four Member Groups', 'Group Photos',
+        'Two Member Groups', 'Pair Photos', 'Three Member Groups',
+        'General Photos'
+      ];
+      const otherFolders = await SmartFolder.find({
+        userId,
+        $or: [
+          { name: { $in: baseHumanNames } },
+          { category: { $in: ['Solo', 'Two People', 'Three People', 'Four People', 'Group', 'General Photos', 'Individual Photos', 'Four Member Groups', 'Group Photos'] } }
+        ],
+        _id: { $nin: Array.from(keepFolderIds) }
+      });
 
-    // Rule B: Exactly four people (faceCount === 4)
-    if (faceCount === 4) {
-      // 1. Always place in "Four Member Groups" parent category folder
-      await addToFileAndFolder(baseFolders['Four Member Groups']);
-
-      // 2. If all 4 members confirmed and consented, also place in specific combination folder
-      if (hasConsent && matchedProfiles.length === 4) {
-        const memberIds = matchedProfiles.map((p) => p._id);
-        const groupKey = this.generateGroupKey({ userId, collectionId, memberIds });
-
-        let groupRec = await GroupFolder.findOne({ userId, collectionId, groupKey });
-
-        if (groupRec) {
-          const existingFolder = await SmartFolder.findById(groupRec.folderId);
-          if (existingFolder) {
-            await addToFileAndFolder(existingFolder);
-          }
-          if (!groupRec.fileIds.map(String).includes(String(file._id))) {
-            groupRec.fileIds.push(file._id);
-            await groupRec.save();
-          }
-        } else {
-          const names = matchedProfiles.map((p) => p.displayName || 'Person').join(' - ');
-          const folderName = `${names}`;
-
-          const newFolder = await SmartFolder.create({
-            userId,
-            collectionId,
-            name: folderName,
-            category: 'Four Member Groups',
-            parentFolderId: baseFolders['Four Member Groups']._id,
-            icon: 'Users',
-            color: '#F59E0B',
-            isAIGenerated: true,
-            fileIds: [file._id],
-          });
-
-          groupRec = await GroupFolder.create({
-            userId,
-            collectionId,
-            groupKey,
-            groupSize: 4,
-            memberProfileIds: memberIds,
-            folderId: newFolder._id,
-            fileIds: [file._id],
-          });
-
-          await addToFileAndFolder(newFolder);
+      for (const ofolder of otherFolders) {
+        if (ofolder.fileIds && ofolder.fileIds.map(String).includes(String(file._id))) {
+          ofolder.fileIds = ofolder.fileIds.filter((id) => String(id) !== String(file._id));
+          await ofolder.save();
         }
       }
 
-      let ruleApplied = 'Rule B (Four-Member Group)';
-      if (hasConsent && matchedProfiles.length < 4) {
-        // Flag for human review if matching is on but profiles incomplete
-        await addToFileAndFolder(baseFolders['Needs Review']);
-        ruleApplied += ' & Rule G (Needs Review)';
-      }
-
-      await file.save();
-      return { assignedFolders, ruleApplied };
-    }
-
-    // Rule C: Exactly three people (faceCount === 3)
-    if (faceCount === 3) {
-      // 1. Always place in "Three People" parent category folder
-      await addToFileAndFolder(baseFolders['Three People']);
-
-      // 2. If all 3 members confirmed and consented, also place in specific combination folder
-      if (hasConsent && matchedProfiles.length === 3) {
-        const memberIds = matchedProfiles.map((p) => p._id);
-        const groupKey = this.generateGroupKey({ userId, collectionId, memberIds });
-
-        let groupRec = await GroupFolder.findOne({ userId, collectionId, groupKey });
-
-        if (groupRec) {
-          const existingFolder = await SmartFolder.findById(groupRec.folderId);
-          if (existingFolder) {
-            await addToFileAndFolder(existingFolder);
-          }
-          if (!groupRec.fileIds.map(String).includes(String(file._id))) {
-            groupRec.fileIds.push(file._id);
-            await groupRec.save();
-          }
-        } else {
-          const names = matchedProfiles.map((p) => p.displayName || 'Person').join(' - ');
-          const folderName = `${names}`;
-
-          const newFolder = await SmartFolder.create({
-            userId,
-            collectionId,
-            name: folderName,
-            category: 'Three People',
-            parentFolderId: baseFolders['Three People']._id,
-            icon: 'Users',
-            color: '#10B981',
-            isAIGenerated: true,
-            fileIds: [file._id],
-          });
-
-          groupRec = await GroupFolder.create({
-            userId,
-            collectionId,
-            groupKey,
-            groupSize: 3,
-            memberProfileIds: memberIds,
-            folderId: newFolder._id,
-            fileIds: [file._id],
-          });
-
-          await addToFileAndFolder(newFolder);
-        }
-      }
-
-      let ruleApplied = 'Rule C (Three People)';
-      if (hasConsent && matchedProfiles.length < 3) {
-        await addToFileAndFolder(baseFolders['Needs Review']);
-        ruleApplied += ' & Rule G (Needs Review)';
-      }
-
-      await file.save();
-      return { assignedFolders, ruleApplied };
-    }
-
-    // Rule D: Exactly two people (faceCount === 2)
-    if (faceCount === 2) {
-      // 1. Always place in "Two People" parent category folder
-      await addToFileAndFolder(baseFolders['Two People']);
-
-      // 2. If both members confirmed and consented, also place in specific pair folder
-      if (hasConsent && matchedProfiles.length === 2) {
-        const memberIds = matchedProfiles.map((p) => p._id);
-        const groupKey = this.generateGroupKey({ userId, collectionId, memberIds });
-
-        let groupRec = await GroupFolder.findOne({ userId, collectionId, groupKey });
-
-        if (groupRec) {
-          const existingFolder = await SmartFolder.findById(groupRec.folderId);
-          if (existingFolder) {
-            await addToFileAndFolder(existingFolder);
-          }
-          if (!groupRec.fileIds.map(String).includes(String(file._id))) {
-            groupRec.fileIds.push(file._id);
-            await groupRec.save();
-          }
-        } else {
-          const names = matchedProfiles.map((p) => p.displayName || 'Person').join(' - ');
-          const folderName = `${names}`;
-
-          const newFolder = await SmartFolder.create({
-            userId,
-            collectionId,
-            name: folderName,
-            category: 'Two People',
-            parentFolderId: baseFolders['Two People']._id,
-            icon: 'UserCheck',
-            color: '#3B82F6',
-            isAIGenerated: true,
-            fileIds: [file._id],
-          });
-
-          groupRec = await GroupFolder.create({
-            userId,
-            collectionId,
-            groupKey,
-            groupSize: 2,
-            memberProfileIds: memberIds,
-            folderId: newFolder._id,
-            fileIds: [file._id],
-          });
-
-          await addToFileAndFolder(newFolder);
-        }
-      }
-
-      let ruleApplied = 'Rule D (Two People)';
-      if (hasConsent && matchedProfiles.length < 2) {
-        await addToFileAndFolder(baseFolders['Needs Review']);
-        ruleApplied += ' & Rule G (Needs Review)';
-      }
-
-      await file.save();
-      return { assignedFolders, ruleApplied };
-    }
-
-    // Rule E: Exactly one person (faceCount === 1)
-    if (faceCount === 1) {
-      // 1. Always place in "Individual Photos" parent category folder
-      await addToFileAndFolder(baseFolders['Individual Photos']);
-
-      // 2. If profile confirmed and consented, also place in specific personal folder
-      if (hasConsent && matchedProfiles.length === 1) {
-        const profile = matchedProfiles[0];
-        const folderName = profile.displayName || 'Person';
-
-        let personFolder = await SmartFolder.findOne({
-          userId,
-          collectionId,
-          category: 'Individual Photos',
-          personName: folderName,
+      if (Array.isArray(file.smartFolderIds)) {
+        file.smartFolderIds = file.smartFolderIds.filter((fid) => {
+          const isOther = otherFolders.some((of) => String(of._id) === String(fid));
+          return !isOther;
         });
+      }
+    };
 
-        if (!personFolder) {
-          personFolder = await SmartFolder.create({
+    // Check for low detection confidence fallback (Requirement #9)
+    const minFaceConf = faces.length > 0 ? Math.min(...faces.map(f => f.detectionConfidence || 1)) : 1;
+    if (isLowConfidence || (faces.length > 0 && minFaceConf < 0.60)) {
+      await addToFileAndFolder(baseFolders['Needs Review']);
+      await cleanOtherFolders(assignedFolders);
+      await file.save();
+      return { assignedFolders, ruleApplied: 'Rule G (Needs Review - Low Confidence)' };
+    }
+
+    // Rule A: Five or more people (faceCount >= 5) -> Group
+    if (faceCount >= 5) {
+      await addToFileAndFolder(baseFolders['Group']);
+      await cleanOtherFolders(assignedFolders);
+      await file.save();
+      return { assignedFolders, ruleApplied: 'Rule A (Group - 5+ People)' };
+    }
+
+    // Rule B: Exactly four people (faceCount === 4) -> Four People
+    if (faceCount === 4) {
+      await addToFileAndFolder(baseFolders['Four People']);
+      await cleanOtherFolders(assignedFolders);
+      await file.save();
+      return { assignedFolders, ruleApplied: 'Rule B (Four People)' };
+    }
+
+    // Rule C: Exactly three people (faceCount === 3) -> Three People
+    if (faceCount === 3) {
+      await addToFileAndFolder(baseFolders['Three People']);
+      await cleanOtherFolders(assignedFolders);
+      await file.save();
+      return { assignedFolders, ruleApplied: 'Rule C (Three People)' };
+    }
+
+    // Rule D: Exactly two people (faceCount === 2) -> Two People
+    if (faceCount === 2) {
+      await addToFileAndFolder(baseFolders['Two People']);
+      await cleanOtherFolders(assignedFolders);
+      await file.save();
+      return { assignedFolders, ruleApplied: 'Rule D (Two People)' };
+    }
+
+    // Rule E: Exactly one person (faceCount === 1) -> Solo & Person Subfolder
+    if (faceCount === 1) {
+      // 1. Always place in base "Solo" folder
+      await addToFileAndFolder(baseFolders['Solo']);
+
+      // 2. Intelligent Cross-Image Face Recognition & Personal Folder Matching (Requirements #4 & #5)
+      const faceEmb = faces[0]?.embedding;
+      if (faceEmb && faceEmb.length > 0) {
+        const existingProfiles = await PersonProfile.find({
+          userId,
+          status: 'active',
+        }).select('+privateEmbeddingReference');
+
+        let matchedProfile = null;
+        let highestSim = 0;
+
+        for (const prof of existingProfiles) {
+          if (prof.privateEmbeddingReference && prof.privateEmbeddingReference.length > 0) {
+            const sim = this.cosineSimilarity(faceEmb, prof.privateEmbeddingReference);
+            if (sim > highestSim && sim >= 0.45) {
+              highestSim = sim;
+              matchedProfile = prof;
+            }
+          }
+        }
+
+        if (matchedProfile) {
+          // Re-use existing person profile
+          matchedProfile.fileCount = (matchedProfile.fileCount || 0) + 1;
+          if (!matchedProfile.sampleFaceUrl && file.cloudinaryUrl) {
+            matchedProfile.sampleFaceUrl = file.cloudinaryUrl;
+          }
+          await matchedProfile.save();
+
+          let personFolder = await SmartFolder.findOne({
+            userId,
+            category: 'Solo',
+            personName: matchedProfile.displayName,
+          });
+
+          if (!personFolder) {
+            personFolder = await SmartFolder.create({
+              userId,
+              collectionId,
+              name: matchedProfile.displayName,
+              category: 'Solo',
+              parentFolderId: baseFolders['Solo']._id,
+              icon: 'User',
+              color: '#8B5CF6',
+              isAIGenerated: true,
+              isPersonFolder: true,
+              personName: matchedProfile.displayName,
+              fileIds: [file._id],
+            });
+          } else {
+            if (!personFolder.fileIds.map(String).includes(String(file._id))) {
+              personFolder.fileIds.push(file._id);
+              await personFolder.save();
+            }
+          }
+          await addToFileAndFolder(personFolder);
+        } else {
+          // New person: create new PersonProfile and personal folder under Solo
+          const newProfileCount = existingProfiles.length + 1;
+          const newProfileName = `Person #${newProfileCount}`;
+          const unnamedId = `person_${new mongoose.Types.ObjectId().toString().slice(-6)}`;
+
+          await PersonProfile.create({
             userId,
             collectionId,
-            name: folderName,
-            category: 'Individual Photos',
-            parentFolderId: baseFolders['Individual Photos']._id,
+            displayName: newProfileName,
+            unnamedId,
+            privateEmbeddingReference: faceEmb,
+            sampleFaceUrl: file.cloudinaryUrl || '',
+            consentStatus: true,
+            status: 'active',
+            fileCount: 1,
+          });
+
+          const personFolder = await SmartFolder.create({
+            userId,
+            collectionId,
+            name: newProfileName,
+            category: 'Solo',
+            parentFolderId: baseFolders['Solo']._id,
             icon: 'User',
-            color: '#EC4899',
+            color: '#8B5CF6',
             isAIGenerated: true,
             isPersonFolder: true,
-            personName: folderName,
+            personName: newProfileName,
             fileIds: [file._id],
           });
-        } else {
-          if (!personFolder.fileIds.map(String).includes(String(file._id))) {
-            personFolder.fileIds.push(file._id);
-            await personFolder.save();
-          }
-        }
 
-        await addToFileAndFolder(personFolder);
+          await addToFileAndFolder(personFolder);
+        }
       }
 
+      await cleanOtherFolders(assignedFolders);
       await file.save();
-      return { assignedFolders, ruleApplied: 'Rule E (Individual Photo)' };
+      return { assignedFolders, ruleApplied: 'Rule E (Solo & Recognized Person Folder)' };
     }
 
     // Rule F: Zero people (faceCount === 0)
-    // Send to normal category folders (handled by smartFolderService, strictly no person/group folder)
+    // Non-human content -> purge from all human base folders
+    await cleanOtherFolders([]);
     await file.save();
     return { assignedFolders: [], ruleApplied: 'Rule F (Non-Human Scenery / Objects)' };
   }

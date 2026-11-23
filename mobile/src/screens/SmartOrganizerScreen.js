@@ -62,7 +62,7 @@ export const SmartOrganizerScreen = () => {
 
   // Natural Language Rule State
   const [rulePrompt, setRulePrompt] = useState(
-    'If a photo contains more than four people, put it in Group Photos. For exactly four, three, two, or one person, group photographs containing the same recognized members together.'
+    'If a photo contains 5 or more people, put it in Group. For exactly four, three, two, or one person (Solo), sort them into their respective folders.'
   );
   const [interpretedRule, setInterpretedRule] = useState(null);
   const [isInterpreting, setIsInterpreting] = useState(false);

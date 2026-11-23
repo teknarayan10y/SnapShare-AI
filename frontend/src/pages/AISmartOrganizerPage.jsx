@@ -85,7 +85,7 @@ export default function AISmartOrganizerPage() {
   const [editingPersonId, setEditingPersonId] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState('');
   const [commandPrompt, setCommandPrompt] = useState(
-    'If a photo contains more than four people, put it in Group Photos. For exactly four, three, two, or one person, group photographs containing the same recognized members together.'
+    'If a photo contains 5 or more people, put it in Group. For exactly four, three, two, or one person (Solo), sort them into their respective folders.'
   );
   const [interpretedRule, setInterpretedRule] = useState(null);
   const [isInterpreting, setIsInterpreting] = useState(false);
@@ -1397,20 +1397,24 @@ export default function AISmartOrganizerPage() {
                   <span className="text-xl font-black text-white mt-1 block">{orgPreview.totalFiles}</span>
                 </div>
                 <div className="p-3.5 rounded-2xl glass-panel border border-indigo-500/30 bg-indigo-950/20">
-                  <span className="text-[10px] font-bold uppercase text-indigo-300 block">Group Photos (&gt;4)</span>
+                  <span className="text-[10px] font-bold uppercase text-indigo-300 block">Group (&ge;5)</span>
                   <span className="text-xl font-black text-white mt-1 block">{orgPreview.groupPhotosCount}</span>
                 </div>
                 <div className="p-3.5 rounded-2xl glass-panel border border-amber-500/30 bg-amber-950/20">
-                  <span className="text-[10px] font-bold uppercase text-amber-300 block">4-Member Groups</span>
+                  <span className="text-[10px] font-bold uppercase text-amber-300 block">Four People</span>
                   <span className="text-xl font-black text-white mt-1 block">{orgPreview.fourMemberCount}</span>
                 </div>
                 <div className="p-3.5 rounded-2xl glass-panel border border-emerald-500/30 bg-emerald-950/20">
-                  <span className="text-[10px] font-bold uppercase text-emerald-300 block">3-Member Groups</span>
+                  <span className="text-[10px] font-bold uppercase text-emerald-300 block">Three People</span>
                   <span className="text-xl font-black text-white mt-1 block">{orgPreview.threeMemberCount}</span>
                 </div>
                 <div className="p-3.5 rounded-2xl glass-panel border border-blue-500/30 bg-blue-950/20">
-                  <span className="text-[10px] font-bold uppercase text-blue-300 block">2-Member Pairs</span>
+                  <span className="text-[10px] font-bold uppercase text-blue-300 block">Two People</span>
                   <span className="text-xl font-black text-white mt-1 block">{orgPreview.twoMemberCount}</span>
+                </div>
+                <div className="p-3.5 rounded-2xl glass-panel border border-purple-500/30 bg-purple-950/20">
+                  <span className="text-[10px] font-bold uppercase text-purple-300 block">Solo</span>
+                  <span className="text-xl font-black text-white mt-1 block">{orgPreview.singleCount}</span>
                 </div>
                 <div className="p-3.5 rounded-2xl glass-panel border border-rose-500/30 bg-rose-950/20">
                   <span className="text-[10px] font-bold uppercase text-rose-300 block">Needs Review</span>

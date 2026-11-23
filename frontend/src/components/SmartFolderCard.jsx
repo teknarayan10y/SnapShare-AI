@@ -13,6 +13,7 @@ const categoryColorMap = {
   Documents: 'from-blue-500 to-slate-700',
   Screenshots: 'from-violet-500 to-purple-800',
   Code: 'from-green-500 to-emerald-800',
+  Solo: 'from-purple-500 to-indigo-600',
   'Individual Photos': 'from-pink-500 to-rose-600',
   'Single Photos': 'from-pink-500 to-rose-600',
   'Two People': 'from-blue-500 to-cyan-600',
@@ -22,6 +23,7 @@ const categoryColorMap = {
   'Three Member Groups': 'from-emerald-500 to-teal-600',
   'Four People': 'from-amber-500 to-orange-600',
   'Four Member Groups': 'from-amber-500 to-orange-600',
+  Group: 'from-pink-500 to-rose-700',
   'Group Photos': 'from-indigo-600 to-purple-800',
   'Needs Review': 'from-rose-600 to-red-800',
   Person: 'from-purple-500 to-indigo-700',
@@ -33,11 +35,11 @@ export const SmartFolderCard = ({ folder, onClick, isSelected }) => {
   const fileCount = folder.fileIds?.length ?? folder.fileCount ?? 0;
   
   const IconComponent =
-    ['Single Photos', 'Individual Photos'].includes(folder.category) || ['Single Photos', 'Individual Photos'].includes(folder.name)
+    ['Solo', 'Single Photos', 'Individual Photos'].includes(folder.category) || ['Solo', 'Single Photos', 'Individual Photos'].includes(folder.name)
       ? User
       : ['Two People', 'Two Member Groups', 'Pair Photos'].includes(folder.category) || ['Two People', 'Two Member Groups', 'Pair Photos'].includes(folder.name)
       ? UserCheck
-      : ['Three People', 'Three Member Groups', 'Four People', 'Four Member Groups', 'Group Photos'].includes(folder.category) || ['Three People', 'Three Member Groups', 'Four People', 'Four Member Groups', 'Group Photos'].includes(folder.name)
+      : ['Three People', 'Three Member Groups', 'Four People', 'Four Member Groups', 'Group', 'Group Photos'].includes(folder.category) || ['Three People', 'Three Member Groups', 'Four People', 'Four Member Groups', 'Group', 'Group Photos'].includes(folder.name)
       ? Users
       : folder.category === 'Needs Review' || folder.name === 'Needs Review'
       ? AlertCircle

@@ -164,22 +164,26 @@ class AIJobQueue {
       // Privacy and Face Detection processing
       const user = await User.findById(job.userId);
       const enableFaceDetection = user?.aiPreferences?.enableFaceDetection ?? true;
-      const enableFaceMatching = user?.aiPreferences?.enableFaceMatching ?? false;
-      const faceDetThreshold = user?.aiPreferences?.faceDetectionThreshold || 0.70;
-      const faceMatchThreshold = user?.aiPreferences?.faceMatchingThreshold || 0.80;
+      const enableFaceMatching = true; // Always generate embeddings and match people across images
+      const faceDetThreshold = 0.55;   // Deep neural YuNet optimal threshold
+      const faceMatchThreshold = 0.45; // SFace normalized cosine similarity threshold
 
       let faceDetectionRecord = null;
       let matchedProfiles = [];
       let facesData = [];
       let actualFaceCount = 0;
+      let isLowConfidence = false;
 
       const isImage = category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'svg'].includes(ext);
 
       if (isImage && enableFaceDetection) {
         try {
-          const faceRes = await aiClient.analyzeFaces(filePath, file.originalName, file.cloudinaryUrl, enableFaceMatching, faceDetThreshold);
+          const faceRes = await aiClient.analyzeFaces(filePath, file.originalName, file.cloudinaryUrl, true, faceDetThreshold);
           actualFaceCount = faceRes.faceCount || 0;
           facesData = faceRes.faces || [];
+          if (faceRes.needsReview || (actualFaceCount > 0 && facesData.some(f => (f.detectionConfidence || 1) < 0.60))) {
+            isLowConfidence = true;
+          }
 
           if (enableFaceMatching && facesData.length > 0) {
             const matchRes = await faceOrganizationService.matchFacesToProfiles(facesData, job.userId, job.collectionId, faceMatchThreshold);
@@ -197,23 +201,25 @@ class AIJobQueue {
               detectionConfidence: facesData[0]?.detectionConfidence || 0,
               faceCount: actualFaceCount,
               matchedProfileIds: matchedProfiles.map((p) => p._id),
-              analysisStatus: (enableFaceMatching && matchedProfiles.length < actualFaceCount && actualFaceCount <= 4) ? 'needs_review' : 'completed',
+              analysisStatus: isLowConfidence ? 'needs_review' : 'completed',
             },
             { upsert: true, new: true }
           );
         } catch (fErr) {
           console.warn('[Face Detection Job Warning]:', fErr.message);
+          isLowConfidence = true;
         }
       }
 
-      // Determine final composition
+      // Determine final composition strictly conforming to 5-tier rules:
+      // 1 person -> solo, 2 people -> two_people, 3 people -> three_people, 4 people -> four_people, 5+ -> group
       const finalFaceCount = actualFaceCount || analysisResult.personCount || 0;
-      let finalComposition = analysisResult.photoComposition || 'non_human';
+      let finalComposition = 'non_human';
       if (finalFaceCount > 4) finalComposition = 'group';
-      else if (finalFaceCount === 4) finalComposition = 'four_person';
-      else if (finalFaceCount === 3) finalComposition = 'three_person';
-      else if (finalFaceCount === 2) finalComposition = 'pair';
-      else if (finalFaceCount === 1) finalComposition = 'single_person';
+      else if (finalFaceCount === 4) finalComposition = 'four_people';
+      else if (finalFaceCount === 3) finalComposition = 'three_people';
+      else if (finalFaceCount === 2) finalComposition = 'two_people';
+      else if (finalFaceCount === 1) finalComposition = 'solo';
       else finalComposition = 'non_human';
 
       // Update File with AI metadata & person count
@@ -229,7 +235,7 @@ class AIJobQueue {
 
       // Ensure tags strictly reflect verified composition without robotic phrases
       if (finalFaceCount > 4) {
-        file.aiTags = Array.from(new Set([...(file.aiTags || []), 'Group Photo', 'People', 'Social', 'Group Gathering'])).filter(t => !['Solo', 'Single Photo', 'Portrait'].includes(t));
+        file.aiTags = Array.from(new Set([...(file.aiTags || []), 'Group', 'Group Photo', 'People', 'Social', 'Group Gathering'])).filter(t => !['Solo', 'Single Photo', 'Portrait'].includes(t));
       } else if (finalFaceCount === 4) {
         file.aiTags = Array.from(new Set([...(file.aiTags || []), 'Four People', 'Four-Member Group', 'Quartet'])).filter(t => !['Solo', 'Single Photo'].includes(t));
       } else if (finalFaceCount === 3) {
@@ -249,7 +255,7 @@ class AIJobQueue {
       // Trigger Smart Folder Organization
       const orgMode = user?.aiPreferences?.organizationMode || 'automatic';
 
-      if (isImage && finalFaceCount > 0) {
+      if (isImage) {
         // Execute Deterministic Face-based Organization Rules (Rules A-G)
         await faceOrganizationService.organizePhotoByRules({
           file,
@@ -258,10 +264,16 @@ class AIJobQueue {
           faceCount: finalFaceCount,
           faces: facesData,
           matchedProfiles,
-          hasConsent: enableFaceMatching,
+          hasConsent: true,
+          isLowConfidence,
         });
+
+        // Also route non-human content to general semantic category folders (Rule F)
+        if (finalFaceCount === 0 && !isLowConfidence) {
+          await smartFolderService.organizeFile(file, analysisRecord, job.userId, orgMode);
+        }
       } else {
-        // Standard category organization (Rule F & non-human content)
+        // Standard category organization for documents and code
         await smartFolderService.organizeFile(file, analysisRecord, job.userId, orgMode);
       }
 

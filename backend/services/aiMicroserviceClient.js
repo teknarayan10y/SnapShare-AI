@@ -29,18 +29,19 @@ class AIMicroserviceClient {
       return res.data;
     } catch (err) {
       console.warn('⚠️ [AI Microservice Image Fallback]:', err.message);
-      // Fallback heuristics if python service is unavailable
+      // Fallback heuristics if python service is unavailable: route to Needs Review rather than misfiling (Requirement #9)
       return {
-        success: true,
+        success: false,
+        needsReview: true,
         filename,
         dimensions: { width: 1200, height: 800 },
-        caption: `An image asset '${filename}' processed by SnapShare AI.`,
-        categories: ['General Photos'],
-        tags: ['Image', 'Photo', 'SnapShare'],
-        detectedObjects: [{ label: 'Visual Object', confidence: 0.85 }],
-        scenes: [{ label: 'Scene', confidence: 0.8 }],
+        caption: `Photograph '${filename}' awaiting detailed AI vision indexing.`,
+        categories: ['Needs Review'],
+        tags: ['Image', 'Photo', 'SnapShare', 'Needs Review'],
+        detectedObjects: [{ label: 'Visual Object', confidence: 0.5 }],
+        scenes: [{ label: 'Scene', confidence: 0.5 }],
         colors: { dominantColor: '#8B5CF6', palette: ['#8B5CF6', '#3B82F6'], brightness: 120, contrast: 45, isDark: false, isLight: false },
-        quality: { overallScore: 85, sharpness: 12.5, isBlurry: false, isLowRes: false, isOverexposed: false, isUnderexposed: false, rating: 'High Quality', recommendations: [] },
+        quality: { overallScore: 85, sharpness: 12.5, isBlurry: false, isLowRes: false, isOverexposed: false, isUnderexposed: false, rating: 'Standard', recommendations: [] },
         perceptualHash: '0f1e2d3c4b5a6978',
         embedding: new Array(64).fill(0.05),
       };
@@ -92,7 +93,7 @@ class AIMicroserviceClient {
     }
   }
 
-  async analyzeFaces(filePath, filename, fileUrl = '', generateEmbeddings = false, confidenceThreshold = 0.85) {
+  async analyzeFaces(filePath, filename, fileUrl = '', generateEmbeddings = true, confidenceThreshold = 0.55) {
     try {
       const res = await this.client.post('/analyze/faces', {
         filePath,
@@ -105,10 +106,11 @@ class AIMicroserviceClient {
     } catch (err) {
       console.warn('⚠️ [AI Microservice Face Detection Fallback]:', err.message);
       return {
-        success: true,
+        success: false,
+        needsReview: true,
         filename,
         faceCount: 0,
-        photoComposition: 'non_human',
+        photoComposition: 'needs_review',
         faces: [],
         dimensions: { width: 1200, height: 800 },
       };

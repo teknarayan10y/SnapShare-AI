@@ -66,7 +66,7 @@ def _build_gemini_caption_prompt(person_count: int, composition: str, scene: str
 async def generate_gemini_caption(image_url: str, person_count: int, composition: str,
                                    scene: str, tags: list) -> Optional[str]:
     """Call Gemini 1.5 Flash REST API with an image URL to get a real AI caption."""
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY or not GEMINI_API_KEY.startswith("AIzaSy"):
         return None
     try:
         prompt = _build_gemini_caption_prompt(person_count, composition, scene, tags)
@@ -189,8 +189,8 @@ def get_face_recognizer():
 
 def detect_and_embed_faces(
     img_bgr: np.ndarray,
-    generate_embeddings: bool = False,
-    conf_threshold: float = 0.85,
+    generate_embeddings: bool = True,
+    conf_threshold: float = 0.55,
     nms_threshold: float = 0.3
 ) -> Dict[str, Any]:
     """
@@ -255,7 +255,7 @@ def detect_and_embed_faces(
                 "landmarks": landmarks
             }
 
-            # Optional face embedding generation (Section 5: privacy consent required)
+            # Face embedding generation (128-dim SFace normalized embedding)
             if generate_embeddings and recognizer:
                 try:
                     aligned = recognizer.alignCrop(proc_img, f)
@@ -275,11 +275,12 @@ def detect_and_embed_faces(
     if len(faces_data) > 1:
         areas = [f["boundingBox"]["width"] * f["boundingBox"]["height"] for f in faces_data]
         max_area = max(areas)
-        if max_area > 10000:
+        if max_area > 15000:
             filtered = []
             for f in faces_data:
                 area = f["boundingBox"]["width"] * f["boundingBox"]["height"]
-                if area < 0.35 * max_area and f["detectionConfidence"] < 0.91:
+                # A face is a background bystander if its area is less than 45% of foreground subjects and lower confidence
+                if area < 0.45 * max_area and f["detectionConfidence"] < 0.90:
                     continue
                 filtered.append(f)
             if filtered:
@@ -287,17 +288,18 @@ def detect_and_embed_faces(
 
     face_count = len(faces_data)
 
-    # Section 6: Exact rule classification based on face count
+    # Section 6: Exact rule classification conforming to user requirements
+    # 1 person -> solo, 2 people -> two_people, 3 people -> three_people, 4 people -> four_people, 5+ -> group
     if face_count > 4:
         comp = 'group'
     elif face_count == 4:
-        comp = 'four_person'
+        comp = 'four_people'
     elif face_count == 3:
-        comp = 'three_person'
+        comp = 'three_people'
     elif face_count == 2:
-        comp = 'pair'
+        comp = 'two_people'
     elif face_count == 1:
-        comp = 'single_person'
+        comp = 'solo'
     else:
         comp = 'non_human'
 
@@ -548,7 +550,7 @@ async def analyze_image(req: ImageAnalysisRequest):
 
         # 1. Neural Face Detection & Composition
         img_bgr = cv2.cvtColor(np.array(img.convert('RGB')), cv2.COLOR_RGB2BGR)
-        face_result = detect_and_embed_faces(img_bgr, generate_embeddings=False, conf_threshold=0.7)
+        face_result = detect_and_embed_faces(img_bgr, generate_embeddings=True, conf_threshold=0.55)
 
         if face_result["faceCount"] > 0:
             person_count = face_result["faceCount"]
@@ -584,32 +586,32 @@ async def analyze_image(req: ImageAnalysisRequest):
         categories = []
         tags = []
 
-        # Person & Group categorization (Conforming to Rules A through F)
-        if composition == 'single_person':
+        # Person & Group categorization strictly conforming to user requirements
+        if composition in ['solo', 'single_person']:
             detected_objects.append({"label": "Person (Single Portrait)", "confidence": 0.96})
             scenes.append({"label": "Solo Portrait", "confidence": 0.94})
-            categories.append("Single Photos")
-            tags.extend(["Single Photo", "Solo", "Portrait", "Person"])
-        elif composition == 'pair':
+            categories.append("Solo")
+            tags.extend(["Solo", "Single Photo", "Portrait", "Person"])
+        elif composition in ['two_people', 'pair']:
             detected_objects.append({"label": "Two People (Couple / Duo)", "confidence": 0.95})
             scenes.append({"label": "Two Persons", "confidence": 0.92})
-            categories.append("Pair Photos")
+            categories.append("Two People")
             tags.extend(["Two People", "Pair", "Duo", "Couple"])
-        elif composition == 'three_person':
+        elif composition in ['three_people', 'three_person']:
             detected_objects.append({"label": "Three People (Trio)", "confidence": 0.95})
             scenes.append({"label": "Three-Member Group", "confidence": 0.92})
-            categories.append("Three-Member Groups")
+            categories.append("Three People")
             tags.extend(["Three People", "Trio", "Small Group", "Friends"])
-        elif composition == 'four_person':
+        elif composition in ['four_people', 'four_person']:
             detected_objects.append({"label": "Four People (Quartet)", "confidence": 0.95})
             scenes.append({"label": "Four-Member Group", "confidence": 0.93})
-            categories.append("Four-Member Groups")
+            categories.append("Four People")
             tags.extend(["Four People", "Quartet", "Group", "Friends"])
         elif composition == 'group':
             detected_objects.append({"label": f"People ({person_count} Persons)", "confidence": 0.96})
             scenes.append({"label": "Group Gathering", "confidence": 0.95})
-            categories.append("Group Photos")
-            tags.extend(["Group Photo", "People", "Friends", "Group Portrait", "Social"])
+            categories.append("Group")
+            tags.extend(["Group", "Group Photo", "People", "Friends", "Group Portrait", "Social"])
 
         # Screenshot detection
         is_screenshot = "screenshot" in lower_name or "screen" in lower_name or (w in [1920, 1080, 1440, 2560] and h in [1080, 720, 900, 1440])
@@ -659,22 +661,22 @@ async def analyze_image(req: ImageAnalysisRequest):
 
         # Enforce strict categorization conforming to Master Prompt Rules A through F:
         if composition == 'group':
-            categories = ["Group Photos"]
-        elif composition == 'four_person':
-            categories = ["Four Member Groups"]
-        elif composition == 'three_person':
+            categories = ["Group"]
+        elif composition in ['four_people', 'four_person']:
+            categories = ["Four People"]
+        elif composition in ['three_people', 'three_person']:
             categories = ["Three People"]
-        elif composition == 'pair':
+        elif composition in ['two_people', 'pair']:
             categories = ["Two People"]
-        elif composition == 'single_person':
-            categories = ["Individual Photos"]
+        elif composition in ['solo', 'single_person']:
+            categories = ["Solo"]
         else:
             # Rule F: Zero people - normal categorization, strictly exclude all human/group folders
             categories = [c for c in categories if c not in [
-                "Group Photos", "Four Member Groups", "Four-Member Groups",
+                "Group", "Group Photos", "Four People", "Four Member Groups", "Four-Member Groups",
                 "Three People", "Three Member Groups", "Three-Member Groups",
                 "Two People", "Two Member Groups", "Pair Photos",
-                "Individual Photos", "Single Photos"
+                "Solo", "Individual Photos", "Single Photos"
             ]]
             if not categories:
                 categories = ["General Photos"]

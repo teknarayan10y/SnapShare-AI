@@ -335,11 +335,11 @@ export const previewGroupOrganization = async (req, res) => {
     }
 
     const proposedFolders = [
-      { name: 'Group Photos (>4 People)', count: groupPhotosCount, action: 'Reuse / Associate' },
-      { name: 'Four Member Groups', count: fourMemberCount, action: 'Create / Match combination' },
-      { name: 'Three Member Groups', count: threeMemberCount, action: 'Create / Match combination' },
-      { name: 'Two Member Groups', count: twoMemberCount, action: 'Create / Match combination' },
-      { name: 'Individual Photos', count: singleCount, action: 'Route to personal folders' },
+      { name: 'Group (≥5 People)', count: groupPhotosCount, action: 'Reuse / Associate' },
+      { name: 'Four People', count: fourMemberCount, action: 'Create / Match combination' },
+      { name: 'Three People', count: threeMemberCount, action: 'Create / Match combination' },
+      { name: 'Two People', count: twoMemberCount, action: 'Create / Match combination' },
+      { name: 'Solo', count: singleCount, action: 'Route to personal folders' },
       { name: 'Needs Review', count: needsReviewCount, action: 'Hold for user review' },
     ];
 

@@ -121,7 +121,7 @@ const fileSchema = new mongoose.Schema(
     },
     photoComposition: {
       type: String,
-      enum: ['single_person', 'pair', 'three_person', 'four_person', 'group', 'non_human', ''],
+      enum: ['single_person', 'pair', 'three_person', 'four_person', 'group', 'non_human', 'solo', 'two_people', 'three_people', 'four_people', ''],
       default: 'non_human',
       index: true,
     },

@@ -209,10 +209,10 @@ export const CollectionManagementPage = () => {
     return (
       <div className="space-y-8 animate-in fade-in pb-16">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
           <Link
             to="/dashboard/collections"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors py-1.5"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Collections
           </Link>
@@ -253,23 +253,29 @@ export const CollectionManagementPage = () => {
 
         {/* Collection Cover & Header Banner */}
         <div className="relative rounded-3xl overflow-hidden glass-panel border border-white/10 shadow-2xl">
-          {currentCollection.coverImage && (
-            <div className="h-44 w-full overflow-hidden relative">
+          {currentCollection.coverImage ? (
+            <div className="h-44 sm:h-52 w-full overflow-hidden relative">
               <img
                 src={currentCollection.coverImage}
                 alt="Cover"
-                className="w-full h-full object-cover opacity-40 blur-xs"
+                className="w-full h-full object-cover opacity-50 blur-xs"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#080B14] via-[#080B14]/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#080B14] via-[#080B14]/70 to-transparent" />
+            </div>
+          ) : (
+            <div className="h-24 sm:h-28 w-full relative overflow-hidden bg-gradient-to-r from-purple-900/30 via-indigo-950/40 to-slate-900/50">
+              <div className="absolute -top-12 -left-12 w-48 h-48 bg-purple-500/15 rounded-full blur-2xl" />
+              <div className="absolute top-0 right-0 w-64 h-32 bg-indigo-500/15 rounded-full blur-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#080B14] via-[#080B14]/40 to-transparent" />
             </div>
           )}
 
-          <div className="p-6 sm:p-8 space-y-4 relative -mt-12">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="uppercase text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          <div className={`p-6 sm:p-8 space-y-4 relative ${currentCollection.coverImage ? '-mt-16 sm:-mt-20' : 'pt-4 sm:pt-6'}`}>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="uppercase text-[10px] font-extrabold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 tracking-wider shadow-sm">
                 {currentCollection.category}
               </span>
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center gap-1">
+              <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center gap-1.5 shadow-sm">
                 {currentCollection.accessType === 'public' ? (
                   <>
                     <Globe className="w-3.5 h-3.5 text-cyan-400" /> Public
@@ -281,25 +287,25 @@ export const CollectionManagementPage = () => {
                 )}
               </span>
               {currentCollection.eventDate && (
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />{' '}
+                <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />{' '}
                   {new Date(currentCollection.eventDate).toLocaleDateString()}
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white">{currentCollection.title}</h1>
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">{currentCollection.title}</h1>
             {currentCollection.description && (
               <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
                 {currentCollection.description}
               </p>
             )}
 
-            <div className="flex items-center gap-6 pt-2 text-xs font-medium text-slate-400 border-t border-white/5">
-              <span>{files.length} Files Total</span>
-              <span>{formatBytes(currentCollection.totalSize || 0)}</span>
-              <span>{currentCollection.scanCount || 0} QR Scans</span>
-              <span>{currentCollection.downloadCount || 0} Downloads</span>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-3 text-xs font-medium text-slate-400 border-t border-white/5">
+              <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-purple-400" /> {files.length} Files Total</span>
+              <span className="flex items-center gap-1.5">{formatBytes(currentCollection.totalSize || 0)}</span>
+              <span className="flex items-center gap-1.5"><QrCode className="w-3.5 h-3.5 text-cyan-400" /> {currentCollection.scanCount || 0} QR Scans</span>
+              <span className="flex items-center gap-1.5"><Download className="w-3.5 h-3.5 text-emerald-400" /> {currentCollection.downloadCount || 0} Downloads</span>
             </div>
           </div>
         </div>

@@ -3,11 +3,9 @@ import {
   StyleSheet,
   View,
   Text,
-  Image,
   Animated,
   StatusBar,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,23 +14,20 @@ export const SplashScreen = ({ isReady = true, onFinish }) => {
   const insets = useSafeAreaInsets();
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
-  // Animation values
+  // Animation controllers
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const logoScaleAnim = useRef(new Animated.Value(0.82)).current;
+  const logoScaleAnim = useRef(new Animated.Value(0.85)).current;
   const logoOpacityAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // Safe area insets (respecting punch-hole, status bar, and 3-button navigation bar)
-  const safeTop = Platform.OS === 'android'
-    ? Math.max(insets.top || 0, StatusBar.currentHeight || 0, 28)
-    : Math.max(insets.top || 0, 16);
+  // Safe area insets for Android system navigation and status bar
   const safeBottom = Platform.OS === 'android'
     ? Math.max(insets.bottom || 0, 24)
     : Math.max(insets.bottom || 0, 18);
 
   useEffect(() => {
-    // 1. Entrance animation (scale + fade in)
+    // 1. Smooth entrance animation (scale + fade in)
     Animated.parallel([
       Animated.timing(logoScaleAnim, {
         toValue: 1,
@@ -55,7 +50,7 @@ export const SplashScreen = ({ isReady = true, onFinish }) => {
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.07,
+          toValue: 1.08,
           duration: 1000,
           useNativeDriver: true,
         }),
@@ -100,168 +95,134 @@ export const SplashScreen = ({ isReady = true, onFinish }) => {
   return (
     <Animated.View
       style={[
-        styles.overlay,
+        styles.fullScreen,
         {
           opacity: fadeAnim,
-          paddingTop: safeTop + 12,
-          paddingBottom: safeBottom + 16,
         },
       ]}
-      pointerEvents={minTimeElapsed && isReady ? 'none' : 'auto'}
     >
       <StatusBar barStyle="light-content" backgroundColor="#070B14" translucent={true} />
 
-      {/* Top Header Badge */}
-      <View style={styles.topHeader}>
-        <View style={styles.secureBadge}>
-          <Ionicons name="shield-checkmark" size={12} color="#10B981" />
-          <Text style={styles.secureBadgeText}>Universal Cloud Vault</Text>
-        </View>
-      </View>
-
-      {/* Center Brand & Logo */}
-      <Animated.View
-        style={[
-          styles.centerBrandContainer,
-          {
-            opacity: logoOpacityAnim,
-            transform: [{ scale: logoScaleAnim }],
-          },
-        ]}
-      >
-        {/* Pulsing Outer Glow Ring */}
+      {/* Perfectly Centered Core Brand Section */}
+      <View style={styles.centeredContainer}>
+        {/* Pulsing Outer Glow Aura */}
         <Animated.View
           style={[
-            styles.glowRing,
+            styles.glowAura,
             {
               transform: [{ scale: pulseAnim }],
             },
           ]}
         />
 
-        {/* Logo Card */}
-        <View style={styles.logoCard}>
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.logoImage}
-            resizeMode="cover"
-          />
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleRow}>
-          <Text style={styles.titleSnap}>Snap</Text>
-          <Text style={styles.titleShare}>Share</Text>
-          <View style={styles.versionPill}>
-            <Text style={styles.versionPillText}>v2.0</Text>
+        {/* Animated Brand Container */}
+        <Animated.View
+          style={[
+            styles.brandContent,
+            {
+              opacity: logoOpacityAnim,
+              transform: [{ scale: logoScaleAnim }],
+            },
+          ]}
+        >
+          {/* Brand Sparkles Icon Badge */}
+          <View style={styles.logoBadge}>
+            <Ionicons name="sparkles" size={44} color="#C084FC" />
           </View>
-        </View>
 
-        {/* Tagline */}
-        <Text style={styles.tagline}>Intelligent Event Vault & Face Search</Text>
-
-        {/* Feature Highlights Pills */}
-        <View style={styles.chipsRow}>
-          <View style={styles.chip}>
-            <Ionicons name="sparkles" size={11} color="#C084FC" />
-            <Text style={styles.chipText}>YuNet AI</Text>
+          {/* Brand Title */}
+          <View style={styles.titleRow}>
+            <Text style={styles.titleSnap}>Snap</Text>
+            <Text style={styles.titleShare}>Share</Text>
+            <View style={styles.versionPill}>
+              <Text style={styles.versionPillText}>v2.0</Text>
+            </View>
           </View>
-          <View style={styles.chipDot} />
-          <View style={styles.chip}>
-            <Ionicons name="qr-code" size={11} color="#38BDF8" />
-            <Text style={styles.chipText}>Instant QR Drop</Text>
-          </View>
-          <View style={styles.chipDot} />
-          <View style={styles.chip}>
-            <Ionicons name="cloud-done" size={11} color="#34D399" />
-            <Text style={styles.chipText}>Live Sync</Text>
-          </View>
-        </View>
-      </Animated.View>
 
-      {/* Bottom Loading Progress & Footer */}
-      <View style={styles.bottomContainer}>
-        {/* Sleek Progress Bar */}
-        <View style={styles.progressTrack}>
-          <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
-        </View>
-        <Text style={styles.loadingStatusText}>Securing cloud connection & AI models...</Text>
+          {/* Subtitle / Tagline */}
+          <Text style={styles.tagline}>Intelligent Event Vault & Face Search</Text>
 
-        {/* Bottom Credits */}
-        <View style={styles.footerBranding}>
-          <Text style={styles.footerText}>POWERED BY DEEPMIND VISION & YUNET</Text>
-          <Text style={styles.footerSubText}>End-to-End Encrypted • Real-time Cloud Streaming</Text>
-        </View>
+          {/* Feature Highlights Pills */}
+          <View style={styles.chipsRow}>
+            <View style={styles.chip}>
+              <Ionicons name="sparkles" size={11} color="#C084FC" />
+              <Text style={styles.chipText}>YuNet AI</Text>
+            </View>
+            <View style={styles.chipDot} />
+            <View style={styles.chip}>
+              <Ionicons name="qr-code" size={11} color="#38BDF8" />
+              <Text style={styles.chipText}>Instant QR Drop</Text>
+            </View>
+            <View style={styles.chipDot} />
+            <View style={styles.chip}>
+              <Ionicons name="cloud-done" size={11} color="#34D399" />
+              <Text style={styles.chipText}>Live Sync</Text>
+            </View>
+          </View>
+
+          {/* Progress Bar Track */}
+          <View style={styles.progressTrack}>
+            <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+          </View>
+          <Text style={styles.loadingStatusText}>Securing cloud connection...</Text>
+        </Animated.View>
+      </View>
+
+      {/* Bottom Pinned Footer */}
+      <View style={[styles.bottomFooter, { paddingBottom: safeBottom + 16 }]}>
+        <Text style={styles.footerText}>POWERED BY DEEPMIND VISION & YUNET</Text>
+        <Text style={styles.footerSubText}>End-to-End Encrypted • Real-time Cloud Streaming</Text>
       </View>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#070B14',
-    zIndex: 9999,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  topHeader: {
+  fullScreen: {
+    flex: 1,
     width: '100%',
+    height: '100%',
+    backgroundColor: '#070B14',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 8,
   },
-  secureBadge: {
-    flexDirection: 'row',
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 14,
+    width: '100%',
+    paddingHorizontal: 28,
   },
-  secureBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#34D399',
-    letterSpacing: 0.2,
+  glowAura: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 44,
+    backgroundColor: 'rgba(139, 92, 246, 0.16)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(192, 132, 252, 0.35)',
+    top: '32%',
   },
-  centerBrandContainer: {
+  brandContent: {
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
-  glowRing: {
-    position: 'absolute',
-    width: 126,
-    height: 126,
-    borderRadius: 36,
-    backgroundColor: 'rgba(139, 92, 246, 0.16)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(192, 132, 252, 0.3)',
-  },
-  logoCard: {
-    width: 96,
-    height: 96,
+  logoBadge: {
+    width: 90,
+    height: 90,
     borderRadius: 26,
-    backgroundColor: '#0F172A',
+    backgroundColor: 'rgba(139, 92, 246, 0.16)',
     borderWidth: 2,
     borderColor: 'rgba(168, 85, 247, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
     shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.65,
     shadowRadius: 18,
     elevation: 14,
     marginBottom: 20,
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
   },
   titleRow: {
     flexDirection: 'row',
@@ -307,12 +268,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
+    marginBottom: 26,
   },
   chip: {
     flexDirection: 'row',
@@ -330,12 +292,8 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  bottomContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
   progressTrack: {
-    width: '55%',
+    width: 140,
     height: 3,
     backgroundColor: '#1E293B',
     borderRadius: 2,
@@ -350,9 +308,12 @@ const styles = StyleSheet.create({
   loadingStatusText: {
     fontSize: 11,
     color: '#64748B',
-    marginBottom: 14,
   },
-  footerBranding: {
+  bottomFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
   footerText: {

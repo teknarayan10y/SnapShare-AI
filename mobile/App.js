@@ -190,29 +190,39 @@ const MainNavigator = () => {
     }
   };
 
+  // 1. Full-Screen Splash Screen on App Launch (at least 2 seconds, perfectly centered)
+  if (splashVisible) {
+    return (
+      <SplashScreen
+        isReady={!loading}
+        onFinish={() => setSplashVisible(false)}
+      />
+    );
+  }
+
+  // 2. Auth Screens if not authenticated
+  if (!isAuthenticated) {
+    if (authMode === 'register') {
+      return <RegisterScreen onNavigateToLogin={() => setAuthMode('login')} />;
+    }
+    return <LoginScreen onNavigateToRegister={() => setAuthMode('register')} />;
+  }
+
+  // 3. Main Dashboard once authenticated
   return (
     <View style={styles.appContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0F19" translucent={true} />
 
-      {/* Screen View: Auth Screens or Main App */}
-      {!loading && !isAuthenticated ? (
-        authMode === 'register' ? (
-          <RegisterScreen onNavigateToLogin={() => setAuthMode('login')} />
-        ) : (
-          <LoginScreen onNavigateToRegister={() => setAuthMode('register')} />
-        )
-      ) : !loading && isAuthenticated ? (
-        <>
-          {/* Global Persistent Header on Every Page with safe-area spacing */}
-          <View
-            style={[
-              styles.globalHeader,
-              {
-                paddingTop: headerPaddingTop,
-                height: totalHeaderHeight,
-              },
-            ]}
-          >
+      {/* Global Persistent Header on Every Page with safe-area spacing */}
+      <View
+        style={[
+          styles.globalHeader,
+          {
+            paddingTop: headerPaddingTop,
+            height: totalHeaderHeight,
+          },
+        ]}
+      >
             <View style={styles.headerInnerRow}>
               <View style={styles.headerLeftGroup}>
                 {activeTab !== 'overview' && (
@@ -417,17 +427,7 @@ const MainNavigator = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </>
-      ) : null}
-
-      {/* Clean, Modern Animated Splash Screen (stays at least 2 seconds) */}
-      {splashVisible && (
-        <SplashScreen
-          isReady={!loading}
-          onFinish={() => setSplashVisible(false)}
-        />
-      )}
-    </View>
+        </View>
   );
 };
 

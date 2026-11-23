@@ -17,8 +17,8 @@ import { getApiUrl, setApiUrl } from '../services/api';
 
 export const LoginScreen = ({ onNavigateToRegister }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('aiuser_1794772122872@snapshare.com');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [serverUrl, setServerHost] = useState('');
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [loading, setLoading] = useState(false);

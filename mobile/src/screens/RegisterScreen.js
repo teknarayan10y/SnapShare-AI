@@ -63,7 +63,7 @@ export const RegisterScreen = ({ onNavigateToLogin }) => {
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Pawan Kumar"
+                placeholder="Enter your full name"
                 placeholderTextColor="#64748B"
               />
             </View>

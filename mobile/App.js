@@ -350,19 +350,18 @@ const MainNavigator = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
 
-        {/* In-App Live Camera QR Scanner Modal */}
-        <QRScannerModal
-          visible={showQRScanner}
-          onClose={() => setShowQRScanner(false)}
-          onScanSuccess={(data) => {
-            if (data.includes('collections') || data.includes('view') || data.includes('collectionId=')) {
-              switchTab('events');
-            }
-          }}
-        />
-      </View>
+          {/* In-App Live Camera QR Scanner Modal */}
+          <QRScannerModal
+            visible={showQRScanner}
+            onClose={() => setShowQRScanner(false)}
+            onScanSuccess={(data) => {
+              if (data.includes('collections') || data.includes('view') || data.includes('collectionId=')) {
+                switchTab('events');
+              }
+            }}
+          />
+        </View>
   );
 };
 

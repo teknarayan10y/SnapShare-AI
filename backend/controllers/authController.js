@@ -1,9 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import { User } from '../models/User.js';
 import { Collection } from '../models/Collection.js';
 import { File } from '../models/File.js';
 import { AuditLog } from '../models/AuditLog.js';
+import { cloudinaryService } from '../services/cloudinaryService.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'snapshare_secret_key', {
@@ -164,6 +167,62 @@ export const updateProfile = async (req, res) => {
     res.status(200).json({
       success: true,
       user,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Upload avatar image
+// @route   POST /api/auth/avatar
+export const uploadAvatar = async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, error: 'No avatar image file provided' });
+    }
+
+    let avatarUrl = '';
+    if (cloudinaryService.isConfigured()) {
+      const uploadRes = await cloudinaryService.uploadFile(file.path, file.originalname, 'image', {
+        folder: 'snapshare/avatars',
+        transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
+      });
+      if (uploadRes && uploadRes.secureUrl) {
+        avatarUrl = uploadRes.secureUrl;
+      }
+      try {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      } catch (e) {
+        console.warn('Avatar temp file cleanup warning:', e.message);
+      }
+    }
+
+    if (!avatarUrl) {
+      avatarUrl = `/uploads/temp/${file.filename}`;
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    user.avatar = avatarUrl;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      avatar: avatarUrl,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        storageQuota: user.storageQuota,
+        storageUsed: user.storageUsed,
+        plan: user.plan,
+        customBranding: user.customBranding,
+      },
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

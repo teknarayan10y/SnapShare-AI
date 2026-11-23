@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/', protect, getAllFiles);
 
 // Allow optional auth for uploads if collaborative upload is enabled on the collection
-router.post('/upload', optionalAuth, upload.array('files', 50), uploadFiles);
+router.post('/upload', optionalAuth, upload.any(), uploadFiles);
 
 router.get('/:id', optionalAuth, getFileById);
 router.get('/:id/download', optionalAuth, downloadFile);

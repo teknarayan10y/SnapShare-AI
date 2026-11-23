@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,106 +25,9 @@ import { UploadScreen } from './src/screens/UploadScreen';
 import { PeopleScreen } from './src/screens/PeopleScreen';
 import { OverviewScreen } from './src/screens/OverviewScreen';
 import { AllFilesScreen } from './src/screens/AllFilesScreen';
+import { ProfileSettingsScreen } from './src/screens/ProfileSettingsScreen';
 import { Header } from './src/components/Header';
 import { SplashScreen } from './src/components/SplashScreen';
-import { getApiUrl, setApiUrl } from './src/services/api';
-
-const SettingsScreen = () => {
-  const { user, logout } = useAuth();
-  const [serverUrl, setServerUrl] = useState('');
-
-  React.useEffect(() => {
-    getApiUrl().then(setServerUrl);
-  }, []);
-
-  const handleSaveServer = async () => {
-    if (!serverUrl) return;
-    await setApiUrl(serverUrl);
-    Alert.alert('Saved', 'Server connection URL updated.');
-  };
-
-  return (
-    <View style={styles.tabContent}>
-      <Header title="App Settings" subtitle="Account details & device synchronization" />
-
-      <ScrollView contentContainerStyle={styles.settingsScroll}>
-        {/* User Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileInitial}>
-              {user?.name ? user.name[0].toUpperCase() : 'U'}
-            </Text>
-          </View>
-          <View style={styles.profileDetails}>
-            <Text style={styles.profileName}>{user?.name || 'SnapShare User'}</Text>
-            <Text style={styles.profileEmail}>{user?.email || 'user@snapshare.com'}</Text>
-            <View style={styles.planBadge}>
-              <Text style={styles.planBadgeText}>Pro SaaS Member</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Storage Quota Bar */}
-        <View style={styles.sectionCard}>
-          <View style={styles.quotaHeader}>
-            <Text style={styles.sectionCardTitle}>Cloud Storage Quota</Text>
-            <Text style={styles.quotaPercent}>1% Used</Text>
-          </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '4%' }]} />
-          </View>
-          <Text style={styles.quotaSub}>27 MB of 5,120 MB (5 GB Free Cloudinary CDN)</Text>
-        </View>
-
-        {/* Backend Connection */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>Backend Server Host</Text>
-          <Text style={styles.sectionCardSub}>
-            URL where SnapShare API & Python AI microservice are running.
-          </Text>
-          <TextInput
-            style={styles.serverInput}
-            value={serverUrl}
-            onChangeText={setServerUrl}
-            placeholder="http://192.168.x.x:5000"
-            placeholderTextColor="#64748B"
-            autoCapitalize="none"
-          />
-          <TouchableOpacity style={styles.saveServerBtn} onPress={handleSaveServer}>
-            <Text style={styles.saveServerBtnText}>Update Connection URL</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Architecture Specs */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>Cross-Platform Features</Text>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-            <Text style={styles.featureText}>YuNet Neural Face Detection (OpenCV 5.0)</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-            <Text style={styles.featureText}>SFace 128-dim Biometric Embeddings</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-            <Text style={styles.featureText}>Deterministic Combination Folders (Rules A–G)</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-            <Text style={styles.featureText}>Universal QR Visitor Sharing & Uploads</Text>
-          </View>
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-          <Text style={styles.logoutBtnText}>Sign Out of SnapShare</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
-};
 
 const MainNavigator = () => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -260,9 +164,17 @@ const MainNavigator = () => {
                   onPress={() => switchTab('settings')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.headerAvatarInitial}>
-                    {user?.name ? user.name[0].toUpperCase() : 'U'}
-                  </Text>
+                  {user?.avatar ? (
+                    <Image
+                      source={{ uri: user.avatar }}
+                      style={{ width: 28, height: 28, borderRadius: 14 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.headerAvatarInitial}>
+                      {user?.name ? user.name[0].toUpperCase() : 'U'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -298,7 +210,7 @@ const MainNavigator = () => {
               />
             )}
             {activeTab === 'people' && <PeopleScreen />}
-            {activeTab === 'settings' && <SettingsScreen />}
+            {activeTab === 'settings' && <ProfileSettingsScreen />}
           </View>
 
           {/* Modern 5-Tab Responsive Bottom Navigation Bar */}

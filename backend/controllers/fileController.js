@@ -17,11 +17,26 @@ export const uploadFiles = async (req, res) => {
   try {
     const { collectionId } = req.body;
 
-    if (!collectionId) {
+    let targetCollectionId = collectionId;
+    if (!targetCollectionId && req.user) {
+      let defaultCol = await Collection.findOne({ ownerId: req.user._id });
+      if (!defaultCol) {
+        defaultCol = await Collection.create({
+          ownerId: req.user._id,
+          name: 'General Event Vault',
+          description: 'Universal event vault for uploaded photographs and memories',
+          category: 'Personal',
+          isPublic: true,
+        });
+      }
+      targetCollectionId = defaultCol._id;
+    }
+
+    if (!targetCollectionId) {
       return res.status(400).json({ success: false, error: 'Target collectionId is required' });
     }
 
-    const collection = await Collection.findById(collectionId);
+    const collection = await Collection.findById(targetCollectionId);
     if (!collection) {
       return res.status(404).json({ success: false, error: 'Collection not found' });
     }
@@ -32,14 +47,21 @@ export const uploadFiles = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Collaborative upload is not allowed for this collection' });
     }
 
-    if (!req.files || req.files.length === 0) {
+    const rawFilesList = Array.isArray(req.files)
+      ? req.files
+      : (req.files ? Object.values(req.files).flat() : []);
+    if (rawFilesList.length === 0 && req.file) {
+      rawFilesList.push(req.file);
+    }
+
+    if (rawFilesList.length === 0) {
       return res.status(400).json({ success: false, error: 'No files uploaded' });
     }
 
     const uploadedRecords = [];
     let totalBatchSize = 0;
 
-    for (const rawFile of req.files) {
+    for (const rawFile of rawFilesList) {
       const tempPath = rawFile.path;
       const originalName = rawFile.originalname;
       const fileSize = rawFile.size;

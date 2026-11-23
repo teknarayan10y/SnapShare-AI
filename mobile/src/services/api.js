@@ -156,34 +156,180 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // Upload file (Multipart FormData)
+  // Upload file (Multipart FormData via XMLHttpRequest for 100% Android/iOS & Web compatibility)
   uploadFile: async (fileUri, fileName, mimeType, collectionId = '') => {
-    const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName || 'photo.jpg',
-      type: mimeType || 'image/jpeg',
+    return new Promise(async (resolve, reject) => {
+      try {
+        const cleanName = fileName || `photo_${Date.now()}.jpg`;
+        const cleanMime = mimeType || 'image/jpeg';
+        const formData = new FormData();
+
+        if (Platform.OS === 'web') {
+          // On Web, fetch URI as Blob if needed
+          if (fileUri.startsWith('blob:') || fileUri.startsWith('data:')) {
+            const resp = await fetch(fileUri);
+            const blob = await resp.blob();
+            formData.append('files', blob, cleanName);
+            formData.append('file', blob, cleanName);
+          } else {
+            formData.append('files', { uri: fileUri, name: cleanName, type: cleanMime });
+            formData.append('file', { uri: fileUri, name: cleanName, type: cleanMime });
+          }
+        } else {
+          // React Native Android & iOS: standard object handled by native NetworkingModule
+          const filePayload = {
+            uri: fileUri,
+            name: cleanName,
+            type: cleanMime,
+          };
+          formData.append('files', filePayload);
+          formData.append('file', filePayload);
+        }
+
+        if (collectionId) {
+          formData.append('collectionId', collectionId);
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${currentBaseUrl}/api/files/upload`);
+        xhr.timeout = 120000; // 2 minutes
+
+        xhr.setRequestHeader('Accept', 'application/json');
+        if (authToken) {
+          xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resData = JSON.parse(xhr.responseText);
+              resolve(resData);
+            } catch (e) {
+              resolve({ success: true, text: xhr.responseText });
+            }
+          } else {
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              reject(new Error(errData.error || errData.message || `Upload failed (${xhr.status})`));
+            } catch (e) {
+              reject(new Error(`Upload failed (${xhr.status}): ${xhr.statusText || 'Server Error'}`));
+            }
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('Network connection error during image upload'));
+        };
+
+        xhr.ontimeout = () => {
+          reject(new Error('Upload timed out. Please check your internet connection.'));
+        };
+
+        xhr.send(formData);
+      } catch (err) {
+        reject(err);
+      }
     });
-
-    if (collectionId) {
-      formData.append('collectionId', collectionId);
-    }
-
-    const headers = {};
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(`${currentBaseUrl}/api/files/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.message || data.error || `Upload failed (${response.status})`);
-    }
-    return data;
   },
+
+  // Upload Avatar
+  uploadAvatar: async (fileUri, fileName, mimeType) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const cleanName = fileName || `avatar_${Date.now()}.jpg`;
+        const cleanMime = mimeType || 'image/jpeg';
+        const formData = new FormData();
+
+        if (Platform.OS === 'web') {
+          if (fileUri.startsWith('blob:') || fileUri.startsWith('data:')) {
+            const resp = await fetch(fileUri);
+            const blob = await resp.blob();
+            formData.append('avatar', blob, cleanName);
+          } else {
+            formData.append('avatar', { uri: fileUri, name: cleanName, type: cleanMime });
+          }
+        } else {
+          formData.append('avatar', {
+            uri: fileUri,
+            name: cleanName,
+            type: cleanMime,
+          });
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${currentBaseUrl}/api/auth/avatar`);
+        xhr.timeout = 60000;
+
+        xhr.setRequestHeader('Accept', 'application/json');
+        if (authToken) {
+          xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resData = JSON.parse(xhr.responseText);
+              resolve(resData);
+            } catch (e) {
+              resolve({ success: true, text: xhr.responseText });
+            }
+          } else {
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              reject(new Error(errData.error || errData.message || `Avatar upload failed (${xhr.status})`));
+            } catch (e) {
+              reject(new Error(`Avatar upload failed (${xhr.status})`));
+            }
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error uploading avatar'));
+        xhr.ontimeout = () => reject(new Error('Avatar upload timed out'));
+
+        xhr.send(formData);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  },
+
+  // Profile Management
+  updateProfile: (data) =>
+    request('/api/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  changePassword: (data) =>
+    request('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  deleteAccount: () =>
+    request('/api/auth/delete-account', {
+      method: 'DELETE',
+    }),
+
+  // Collection CRUD & Actions
+  duplicateCollection: (collectionId) =>
+    request(`/api/collections/${collectionId}/duplicate`, {
+      method: 'POST',
+    }),
+
+  deleteCollection: (collectionId) =>
+    request(`/api/collections/${collectionId}`, {
+      method: 'DELETE',
+    }),
+
+  updateCollection: (collectionId, payload) =>
+    request(`/api/collections/${collectionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
 
   // Feature 4: Attach Voice Note
   attachVoiceNote: (fileId, payload) =>

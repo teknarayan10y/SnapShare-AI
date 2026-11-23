@@ -39,6 +39,7 @@ export const CollectionManagementPage = () => {
   const [collections, setCollections] = useState([]);
   const [currentCollection, setCurrentCollection] = useState(null);
   const [files, setFiles] = useState([]);
+  const [fileSortBy, setFileSortBy] = useState('name_asc');
   const [loading, setLoading] = useState(true);
 
   // Filters & Search
@@ -154,17 +155,38 @@ export const CollectionManagementPage = () => {
     }
   };
 
-  // Filtered files
-  const filteredFiles = files.filter((f) => {
-    const matchesSearch =
-      f.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (f.metadata?.aiTags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filtered and naturally sorted files
+  const filteredFiles = files
+    .filter((f) => {
+      const matchesSearch =
+        f.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (f.metadata?.aiTags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesCategory =
-      categoryFilter === 'all' || (f.metadata?.aiCategory || 'other') === categoryFilter;
+      const matchesCategory =
+        categoryFilter === 'all' || (f.metadata?.aiCategory || 'other') === categoryFilter;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      const nameA = a.originalName || '';
+      const nameB = b.originalName || '';
+      if (fileSortBy === 'name_asc') {
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (fileSortBy === 'name_desc') {
+        return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (fileSortBy === 'newest') {
+        return new Date(b.uploadedAt || b.createdAt || 0) - new Date(a.uploadedAt || a.createdAt || 0);
+      }
+      if (fileSortBy === 'oldest') {
+        return new Date(a.uploadedAt || a.createdAt || 0) - new Date(b.uploadedAt || b.createdAt || 0);
+      }
+      if (fileSortBy === 'size') {
+        return (b.fileSize || 0) - (a.fileSize || 0);
+      }
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
   const formatBytes = (bytes) => {
     if (!bytes || bytes === 0) return '0 B';
@@ -310,6 +332,19 @@ export const CollectionManagementPage = () => {
               <option value="document" className="bg-slate-900">Documents</option>
               <option value="archive" className="bg-slate-900">Archives</option>
               <option value="code" className="bg-slate-900">Code</option>
+            </select>
+
+            {/* Sort Selector */}
+            <select
+              value={fileSortBy}
+              onChange={(e) => setFileSortBy(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none"
+            >
+              <option value="name_asc" className="bg-slate-900">Name: 1 → 45 (A–Z)</option>
+              <option value="name_desc" className="bg-slate-900">Name: 45 → 1 (Z–A)</option>
+              <option value="newest" className="bg-slate-900">Newest Upload</option>
+              <option value="oldest" className="bg-slate-900">Oldest Upload</option>
+              <option value="size" className="bg-slate-900">File Size</option>
             </select>
           </div>
 

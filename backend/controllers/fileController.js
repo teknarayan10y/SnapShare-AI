@@ -349,13 +349,28 @@ export const getAllFiles = async (req, res) => {
       query.isFavorite = true;
     }
 
-    const sortField = ['createdAt', 'name', 'size', 'originalName'].includes(sortBy) ? sortBy : 'createdAt';
+    const sortFieldMap = {
+      createdAt: 'uploadedAt',
+      uploadedAt: 'uploadedAt',
+      name: 'originalName',
+      originalName: 'originalName',
+      size: 'fileSize',
+      fileSize: 'fileSize',
+      quality: 'qualityScore',
+      qualityScore: 'qualityScore',
+    };
+    const sortField = sortFieldMap[sortBy] || 'uploadedAt';
     const sortDir = sortOrder === 'asc' ? 1 : -1;
-    const sort = { [sortField]: sortDir };
+    const sort = { [sortField]: sortDir, _id: sortDir };
 
     const skip = (Number(page) - 1) * Number(limit);
     const [files, total] = await Promise.all([
-      File.find(query).sort(sort).skip(skip).limit(Number(limit)).lean(),
+      File.find(query)
+        .collation({ locale: 'en', numericOrdering: true })
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
       File.countDocuments(query),
     ]);
 

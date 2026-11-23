@@ -58,6 +58,7 @@ export const PublicCollectionPage = () => {
   const [downloading, setDownloading] = useState(false);
   const [downloadJobId, setDownloadJobId] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [fileSortBy, setFileSortBy] = useState('name_asc');
   const [copied, setCopied] = useState(false);
   const [showFindMyPhotos, setShowFindMyPhotos] = useState(false);
   const [showPhotobook, setShowPhotobook] = useState(false);
@@ -183,11 +184,29 @@ export const PublicCollectionPage = () => {
     }
   };
 
-  const filteredFiles = files.filter((f) => {
-    const matchesSearch = f.originalName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || (f.metadata?.aiCategory || 'other') === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredFiles = files
+    .filter((f) => {
+      const matchesSearch = f.originalName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || (f.metadata?.aiCategory || 'other') === categoryFilter;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      const nameA = a.originalName || '';
+      const nameB = b.originalName || '';
+      if (fileSortBy === 'name_asc') {
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (fileSortBy === 'name_desc') {
+        return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (fileSortBy === 'newest') {
+        return new Date(b.uploadedAt || b.createdAt || 0) - new Date(a.uploadedAt || a.createdAt || 0);
+      }
+      if (fileSortBy === 'oldest') {
+        return new Date(a.uploadedAt || a.createdAt || 0) - new Date(b.uploadedAt || b.createdAt || 0);
+      }
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
   const handlePreview = (file) => {
     const idx = filteredFiles.findIndex((f) => f._id === file._id);
@@ -512,6 +531,18 @@ export const PublicCollectionPage = () => {
               <option value="document" className="bg-slate-900">Documents</option>
               <option value="archive" className="bg-slate-900">Archives</option>
               <option value="code" className="bg-slate-900">Code</option>
+            </select>
+
+            {/* Sort Selector */}
+            <select
+              value={fileSortBy}
+              onChange={(e) => setFileSortBy(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none"
+            >
+              <option value="name_asc" className="bg-slate-900">Name: 1 → 45 (A–Z)</option>
+              <option value="name_desc" className="bg-slate-900">Name: 45 → 1 (Z–A)</option>
+              <option value="newest" className="bg-slate-900">Newest Upload</option>
+              <option value="oldest" className="bg-slate-900">Oldest Upload</option>
             </select>
           </div>
 

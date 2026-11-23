@@ -48,10 +48,12 @@ import {
   Info,
   Camera,
   BookOpen,
+  ArrowUpDown,
 } from 'lucide-react';
 
 export default function AISmartOrganizerPage() {
   const [activeTab, setActiveTab] = useState('library');
+  const [fileSortBy, setFileSortBy] = useState('name_asc');
   const [overview, setOverview] = useState({
     totalAnalyzed: 0,
     pendingAnalysis: 0,
@@ -144,7 +146,7 @@ export default function AISmartOrganizerPage() {
   // Load Files
   const loadFiles = useCallback(async () => {
     try {
-      const res = await fileAPI.getAllFiles({ limit: 50 });
+      const res = await fileAPI.getAllFiles({ limit: 500, sortBy: 'name', sortOrder: 'asc' });
       if (res.data?.success) {
         setFiles(res.data.files || []);
       }
@@ -563,7 +565,7 @@ export default function AISmartOrganizerPage() {
   // IMPORTANT: Use the already-populated fileIds FROM the folder object directly.
   // Do NOT cross-reference with the separate `files` state — IDs won't match reliably
   // because one is an ObjectId and the other is a plain string.
-  const filteredFiles = selectedFolder
+  const rawFiltered = selectedFolder
     ? (selectedFolder.fileIds || [])
         .map((item) => {
           // fileIds may be fully populated objects (from .populate) or bare IDs
@@ -574,6 +576,31 @@ export default function AISmartOrganizerPage() {
         })
         .filter(Boolean)
     : files;
+
+  // Natural Numerical Sorting (ensures 1, 2, ... 9, 10, ... 45 sort in order)
+  const filteredFiles = [...rawFiltered].sort((a, b) => {
+    const nameA = a.originalName || '';
+    const nameB = b.originalName || '';
+    if (fileSortBy === 'name_asc') {
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    }
+    if (fileSortBy === 'name_desc') {
+      return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+    }
+    if (fileSortBy === 'newest') {
+      return new Date(b.uploadedAt || b.createdAt || 0) - new Date(a.uploadedAt || a.createdAt || 0);
+    }
+    if (fileSortBy === 'oldest') {
+      return new Date(a.uploadedAt || a.createdAt || 0) - new Date(b.uploadedAt || b.createdAt || 0);
+    }
+    if (fileSortBy === 'quality_desc') {
+      return (b.qualityScore || 0) - (a.qualityScore || 0);
+    }
+    if (fileSortBy === 'size_desc') {
+      return (b.fileSize || 0) - (a.fileSize || 0);
+    }
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -817,7 +844,7 @@ export default function AISmartOrganizerPage() {
 
           {/* Files Grid with AI Enhancements */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-base font-bold text-white">
                   {selectedFolder ? `Files in "${selectedFolder.name}"` : 'All Organized Files'}
@@ -825,6 +852,24 @@ export default function AISmartOrganizerPage() {
                 <p className="text-xs text-slate-400">
                   Showing {filteredFiles.length} file(s) with AI captions and metadata
                 </p>
+              </div>
+
+              {/* Natural Sort Controls */}
+              <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-900/90 border border-white/10 px-3 py-1.5 rounded-xl shadow-sm">
+                <ArrowUpDown className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs text-slate-400 font-medium">Sort:</span>
+                <select
+                  value={fileSortBy}
+                  onChange={(e) => setFileSortBy(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer"
+                >
+                  <option value="name_asc" className="bg-slate-900 text-white">Name: 1 → 45 (A–Z)</option>
+                  <option value="name_desc" className="bg-slate-900 text-white">Name: 45 → 1 (Z–A)</option>
+                  <option value="newest" className="bg-slate-900 text-white">Newest Upload</option>
+                  <option value="oldest" className="bg-slate-900 text-white">Oldest Upload</option>
+                  <option value="quality_desc" className="bg-slate-900 text-white">Quality Score</option>
+                  <option value="size_desc" className="bg-slate-900 text-white">File Size</option>
+                </select>
               </div>
             </div>
 

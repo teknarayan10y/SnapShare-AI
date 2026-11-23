@@ -127,7 +127,24 @@ export const getCollectionById = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Collection not found' });
     }
 
-    const files = await File.find({ collectionId: collection._id }).sort('sortOrder -uploadedAt');
+    const { sortBy = 'sortOrder', sortOrder = 'asc' } = req.query;
+    let sort = {};
+    if (sortBy === 'name' || sortBy === 'originalName') {
+      sort = { originalName: sortOrder === 'desc' ? -1 : 1 };
+    } else if (sortBy === 'newest') {
+      sort = { uploadedAt: -1 };
+    } else if (sortBy === 'oldest') {
+      sort = { uploadedAt: 1 };
+    } else if (sortBy === 'size') {
+      sort = { fileSize: sortOrder === 'asc' ? 1 : -1 };
+    } else {
+      // Default: respect custom sortOrder, then natural filename ascending, then newest
+      sort = { sortOrder: 1, originalName: 1, uploadedAt: -1 };
+    }
+
+    const files = await File.find({ collectionId: collection._id })
+      .collation({ locale: 'en', numericOrdering: true })
+      .sort(sort);
     const qr = await QRCode.findOne({ collectionId: collection._id });
 
     res.status(200).json({

@@ -12,10 +12,10 @@ import { useToast } from '../context/ToastContext'
 
 const CATEGORIES = ['all', 'image', 'video', 'audio', 'document', 'archive', 'code', 'other']
 const SORT_OPTIONS = [
+  { label: 'Name (1 → 45 / A–Z)', value: 'name_asc' },
+  { label: 'Name (45 → 1 / Z–A)', value: 'name_desc' },
   { label: 'Newest First', value: 'createdAt_desc' },
   { label: 'Oldest First', value: 'createdAt_asc' },
-  { label: 'Name A–Z', value: 'name_asc' },
-  { label: 'Name Z–A', value: 'name_desc' },
   { label: 'Largest First', value: 'size_desc' },
   { label: 'Smallest First', value: 'size_asc' },
 ]

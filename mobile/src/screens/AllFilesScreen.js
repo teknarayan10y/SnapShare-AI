@@ -88,6 +88,10 @@ export const AllFilesScreen = ({ onNavigateTab }) => {
       }
 
       return true;
+    }).sort((a, b) => {
+      const nameA = a.originalName || '';
+      const nameB = b.originalName || '';
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [files, activeCategory, searchQuery]);
 

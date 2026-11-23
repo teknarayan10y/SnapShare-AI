@@ -105,8 +105,22 @@ export const getPublicCollection = async (req, res) => {
       });
     }
 
-    // Otherwise fetch files
-    const files = await File.find({ collectionId: collection._id }).sort('sortOrder -uploadedAt');
+    const { sortBy = 'sortOrder', sortOrder = 'asc' } = req.query;
+    let sort = { sortOrder: 1, originalName: 1, uploadedAt: -1 };
+    if (sortBy === 'name' || sortBy === 'originalName') {
+      sort = { originalName: sortOrder === 'desc' ? -1 : 1 };
+    } else if (sortBy === 'newest') {
+      sort = { uploadedAt: -1 };
+    } else if (sortBy === 'oldest') {
+      sort = { uploadedAt: 1 };
+    } else if (sortBy === 'size') {
+      sort = { fileSize: sortOrder === 'asc' ? 1 : -1 };
+    }
+
+    // Otherwise fetch files with natural numerical collation
+    const files = await File.find({ collectionId: collection._id })
+      .collation({ locale: 'en', numericOrdering: true })
+      .sort(sort);
 
     // Add signed download URLs for each file
     const filesWithUrls = files.map((f) => ({

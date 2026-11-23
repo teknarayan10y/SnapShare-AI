@@ -46,6 +46,12 @@ export const ProfileSettingsScreen = () => {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // Storage Request Modal State
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [requestedGB, setRequestedGB] = useState('25');
+  const [storageReason, setStorageReason] = useState('');
+  const [submittingStorage, setSubmittingStorage] = useState(false);
+
   // Sync state when user changes
   useEffect(() => {
     if (user) {
@@ -149,6 +155,56 @@ export const ProfileSettingsScreen = () => {
       Alert.alert('Camera Error', err.message || 'Could not capture avatar image.');
     } finally {
       setUploadingAvatar(false);
+    }
+  };
+
+  // Remove Profile Picture
+  const handleRemoveAvatar = () => {
+    Alert.alert(
+      'Remove Profile Picture',
+      'Are you sure you want to remove your profile picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setUploadingAvatar(true);
+            try {
+              await api.updateProfile({ avatar: '' });
+              setAvatar('');
+              updateUser({ avatar: '' });
+              Alert.alert('Removed', 'Profile picture removed successfully.');
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Could not remove avatar.');
+            } finally {
+              setUploadingAvatar(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Submit Extra Storage Request
+  const handleSubmitStorageRequest = async () => {
+    if (!storageReason.trim()) {
+      Alert.alert('Required', 'Please explain why you need extra storage capacity.');
+      return;
+    }
+    setSubmittingStorage(true);
+    try {
+      await api.requestStorageUpgrade({
+        requestedQuotaGB: parseInt(requestedGB, 10) || 25,
+        reason: storageReason.trim(),
+      });
+      setShowStorageModal(false);
+      setStorageReason('');
+      Alert.alert('Request Sent 🚀', 'Your storage upgrade request has been submitted for admin approval.');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Could not submit storage request.');
+    } finally {
+      setSubmittingStorage(false);
     }
   };
 
@@ -286,6 +342,17 @@ export const ProfileSettingsScreen = () => {
                   <Ionicons name="camera-outline" size={14} color="#C084FC" />
                   <Text style={styles.avatarActionBtnText}>Camera</Text>
                 </TouchableOpacity>
+
+                {avatar ? (
+                  <TouchableOpacity
+                    style={[styles.avatarActionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.35)' }]}
+                    onPress={handleRemoveAvatar}
+                    disabled={uploadingAvatar}
+                  >
+                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    <Text style={[styles.avatarActionBtnText, { color: '#EF4444' }]}>Remove</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </View>
@@ -491,6 +558,14 @@ export const ProfileSettingsScreen = () => {
           <Text style={styles.quotaDetails}>
             {storageUsedMB} MB of {storageQuotaMB.toLocaleString()} MB (Global Multi-Region CDN)
           </Text>
+
+          <TouchableOpacity
+            style={styles.requestStorageBtn}
+            onPress={() => setShowStorageModal(true)}
+          >
+            <Ionicons name="sparkles" size={14} color="#10B981" />
+            <Text style={styles.requestStorageBtnText}>Request Extra Storage</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Security & Change Password Section */}
@@ -661,6 +736,75 @@ export const ProfileSettingsScreen = () => {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.deleteConfirmBtnText}>Permanently Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Extra Storage Request Modal */}
+      <Modal visible={showStorageModal} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.storageModalCard}>
+            <View style={styles.storageModalHeader}>
+              <View style={styles.storageModalTitleRow}>
+                <Ionicons name="sparkles" size={20} color="#10B981" />
+                <Text style={styles.storageModalTitle}>Request Extra Storage</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowStorageModal(false)}>
+                <Ionicons name="close" size={22} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.storageModalSub}>
+              Select target capacity and provide a brief reason for admin approval:
+            </Text>
+
+            <Text style={styles.fieldLabel}>Target Capacity</Text>
+            <View style={styles.gbOptionsRow}>
+              {['10', '25', '50', '100'].map((gb) => {
+                const isSel = requestedGB === gb;
+                return (
+                  <TouchableOpacity
+                    key={gb}
+                    style={[styles.gbChip, isSel && styles.gbChipSelected]}
+                    onPress={() => setRequestedGB(gb)}
+                  >
+                    <Text style={[styles.gbChipText, isSel && styles.gbChipTextSelected]}>
+                      {gb} GB
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Reason for Request</Text>
+            <TextInput
+              style={styles.storageReasonInput}
+              value={storageReason}
+              onChangeText={setStorageReason}
+              placeholder="e.g. Hosting a wedding with 300+ guests..."
+              placeholderTextColor="#64748B"
+              multiline
+            />
+
+            <View style={styles.storageModalActions}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setShowStorageModal(false)}
+              >
+                <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.storageSubmitBtn}
+                onPress={handleSubmitStorageRequest}
+                disabled={submittingStorage}
+              >
+                {submittingStorage ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.storageSubmitBtnText}>Submit Request</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -981,6 +1125,108 @@ const styles = StyleSheet.create({
   quotaDetails: {
     fontSize: 11,
     color: '#64748B',
+  },
+  requestStorageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  requestStorageBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  storageModalCard: {
+    width: '100%',
+    backgroundColor: '#0F172A',
+    borderRadius: 22,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  storageModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  storageModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  storageModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  storageModalSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginBottom: 14,
+    lineHeight: 16,
+  },
+  gbOptionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  gbChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  gbChipSelected: {
+    backgroundColor: '#10B981',
+    borderColor: '#34D399',
+  },
+  gbChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#CBD5E1',
+  },
+  gbChipTextSelected: {
+    color: '#FFFFFF',
+  },
+  storageReasonInput: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 12,
+    height: 70,
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+  },
+  storageModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  storageSubmitBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#059669',
+    alignItems: 'center',
+  },
+  storageSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   eyeBtn: {
     padding: 6,

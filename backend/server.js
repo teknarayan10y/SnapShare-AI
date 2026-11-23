@@ -17,6 +17,8 @@ import downloadRoutes from './routes/downloadRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import storageRequestRoutes from './routes/storageRequestRoutes.js';
+import announcementRoutes from './routes/announcementRoutes.js';
 
 dotenv.config();
 
@@ -70,6 +72,8 @@ app.use('/api/downloads', downloadRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/storage-requests', storageRequestRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

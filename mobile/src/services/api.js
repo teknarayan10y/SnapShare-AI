@@ -313,6 +313,18 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // Storage Requests & Announcements
+  requestStorageUpgrade: (payload) =>
+    request('/api/storage-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+
+  getMyStorageRequests: () => request('/api/storage-requests/my'),
+
+  getActiveAnnouncements: () => request('/api/announcements'),
+
   // Collection CRUD & Actions
   duplicateCollection: (collectionId) =>
     request(`/api/collections/${collectionId}/duplicate`, {

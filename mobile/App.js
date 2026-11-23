@@ -28,6 +28,7 @@ import { AllFilesScreen } from './src/screens/AllFilesScreen';
 import { ProfileSettingsScreen } from './src/screens/ProfileSettingsScreen';
 import { Header } from './src/components/Header';
 import { SplashScreen } from './src/components/SplashScreen';
+import { QRScannerModal } from './src/components/QRScannerModal';
 
 const MainNavigator = () => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -38,6 +39,7 @@ const MainNavigator = () => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'events' | 'organizer' | 'upload' | 'people' | 'settings'
   const [tabHistory, setTabHistory] = useState(['overview']);
   const [targetCollectionId, setTargetCollectionId] = useState('');
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // Dynamically scale icon & tab dimensions according to mobile screen size
   const effectiveWidth = Math.min(width, 480);
@@ -159,6 +161,15 @@ const MainNavigator = () => {
               </View>
 
               <View style={styles.headerRightRow}>
+                <TouchableOpacity
+                  style={styles.headerScanBtn}
+                  onPress={() => setShowQRScanner(true)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Scan QR Code"
+                >
+                  <Ionicons name="scan-outline" size={headerSparklesIconSize + 2} color="#38BDF8" />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.headerAvatarBtn}
                   onPress={() => switchTab('settings')}
@@ -340,6 +351,18 @@ const MainNavigator = () => {
             </View>
           </View>
         </View>
+
+        {/* In-App Live Camera QR Scanner Modal */}
+        <QRScannerModal
+          visible={showQRScanner}
+          onClose={() => setShowQRScanner(false)}
+          onScanSuccess={(data) => {
+            if (data.includes('collections') || data.includes('view') || data.includes('collectionId=')) {
+              switchTab('events');
+            }
+          }}
+        />
+      </View>
   );
 };
 
@@ -426,7 +449,17 @@ const styles = StyleSheet.create({
   headerRightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+  },
+  headerScanBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
   },
   headerAvatarBtn: {
     width: 32,

@@ -41,8 +41,21 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/profile', data),
+  uploadAvatar: (formData) =>
+    api.post('/auth/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   changePassword: (data) => api.post('/auth/change-password', data),
   deleteAccount: () => api.delete('/auth/delete-account'),
+};
+
+export const storageRequestAPI = {
+  create: (data) => api.post('/storage-requests', data),
+  getMy: () => api.get('/storage-requests/my'),
+};
+
+export const announcementAPI = {
+  getActive: () => api.get('/announcements'),
 };
 
 export const collectionAPI = {
@@ -108,7 +121,21 @@ export const adminAPI = {
   getOverview: () => api.get('/admin/overview'),
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+  // Storage requests
+  getStorageRequests: (params) => api.get('/admin/storage-requests', { params }),
+  approveStorageRequest: (id) => api.patch(`/admin/storage-requests/${id}/approve`),
+  rejectStorageRequest: (id, data) => api.patch(`/admin/storage-requests/${id}/reject`, data),
+  customStorageRequest: (id, data) => api.patch(`/admin/storage-requests/${id}/custom`, data),
+  // Announcements
+  getAnnouncements: () => api.get('/admin/announcements'),
+  createAnnouncement: (data) => api.post('/admin/announcements', data),
+  updateAnnouncement: (id, data) => api.patch(`/admin/announcements/${id}`, data),
+  deleteAnnouncement: (id) => api.delete(`/admin/announcements/${id}`),
+  // Storage analytics & Security metrics
+  getStorageAnalytics: () => api.get('/admin/storage-analytics'),
+  getSecurityMetrics: () => api.get('/admin/security-metrics'),
 };
 
 export const aiAPI = {

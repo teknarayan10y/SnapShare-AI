@@ -38,6 +38,7 @@ import {
   Radio,
   Eye,
   Send,
+  QrCode,
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -419,10 +420,13 @@ export const AdminDashboard = () => {
                 </span>
               </div>
               <p className="text-3xl font-black text-white">{formatBytes(stats.totalStorageConsumption || 0)}</p>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <ArrowUpRight className="w-3.5 h-3.5" /> 18.6% vs Apr 1- Apr 30
+              <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-400">
+                <HardDrive className="w-3.5 h-3.5" />
+                {stats.totalAllocatedQuota
+                  ? `${((stats.totalStorageConsumption / stats.totalAllocatedQuota) * 100).toFixed(1)}% of ${formatBytes(stats.totalAllocatedQuota)} allocated`
+                  : 'Active Cloud Storage'}
               </div>
-              {/* Futuristic Wave visualization curve */}
+              {/* Wave visualization curve */}
               <div className="h-10 w-full pt-2">
                 <svg viewBox="0 0 200 40" className="w-full h-full overflow-visible">
                   <defs>
@@ -456,7 +460,8 @@ export const AdminDashboard = () => {
               </div>
               <p className="text-3xl font-black text-white">{stats.totalUsers || 0}</p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <ArrowUpRight className="w-3.5 h-3.5" /> 8.4% vs Apr 1- Apr 30
+                <UserCheck className="w-3.5 h-3.5" />
+                {stats.activeUsers ?? stats.totalUsers ?? 0} Active · {stats.suspendedUsers ?? 0} Suspended
               </div>
               {/* Dot Matrix Pattern */}
               <div className="grid grid-cols-10 gap-1 pt-2 opacity-40">
@@ -464,7 +469,7 @@ export const AdminDashboard = () => {
                   <span
                     key={i}
                     className={`w-1.5 h-1.5 rounded-full ${
-                      i % 3 === 0 ? 'bg-cyan-400' : 'bg-slate-700'
+                      i < (stats.activeUsers ?? stats.totalUsers ?? 1) ? 'bg-cyan-400' : 'bg-slate-700'
                     }`}
                   />
                 ))}
@@ -479,7 +484,8 @@ export const AdminDashboard = () => {
               </div>
               <p className="text-3xl font-black text-white">{stats.totalDownloads || 0}</p>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <ArrowUpRight className="w-3.5 h-3.5" /> 14.2% vs Apr 1- Apr 30
+                <QrCode className="w-3.5 h-3.5" />
+                {stats.totalScans || 0} Collection QR Scans
               </div>
               {/* Smooth Green Wave Curve */}
               <div className="h-10 w-full pt-2">
@@ -495,15 +501,22 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Card 4: AI Face Organization Accuracy */}
+            {/* Card 4: AI Face Organization Indexing */}
             <div className="p-5 rounded-3xl bg-[#0B0F19] border border-white/10 relative overflow-hidden space-y-3 shadow-xl">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">AI Clustering Accuracy</span>
+                <span className="text-xs font-semibold text-slate-400">AI Media Indexed</span>
                 <Sparkles className="w-4 h-4 text-purple-400" />
               </div>
-              <p className="text-3xl font-black text-white">98.4%</p>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <ArrowUpRight className="w-3.5 h-3.5" /> 0.6% vs Apr 1- Apr 30
+              <p className="text-3xl font-black text-white">
+                {stats.aiAnalyzedFiles ?? stats.totalFiles ?? 0}{' '}
+                <span className="text-sm font-medium text-slate-400">/ {stats.totalFiles || 0}</span>
+              </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-purple-400">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {stats.totalFiles > 0
+                  ? Math.round(((stats.aiAnalyzedFiles ?? stats.totalFiles) / stats.totalFiles) * 100)
+                  : 100}
+                % Processed · YuNet & Vision
               </div>
               {/* Dotted Line Curve */}
               <div className="h-10 w-full pt-2">
@@ -530,14 +543,14 @@ export const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Middle Row: Storage Breakdown Donut & User Conversion Funnel */}
+          {/* Middle Row: Storage Breakdown Donut & Real Activity Funnel */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Storage by Product / Plan */}
+            {/* Storage by Media Type */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#0B0F19] border border-white/10 space-y-6 shadow-xl">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-white">Storage by Plan & Media Type</h3>
+                <h3 className="text-base font-bold text-white">Storage by Media Type</h3>
                 <span className="text-xs text-slate-400 font-semibold px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
-                  Real-time CDN
+                  Real MongoDB Data
                 </span>
               </div>
 
@@ -553,30 +566,8 @@ export const AdminDashboard = () => {
                       fill="none"
                       stroke="#8B5CF6"
                       strokeWidth="4"
-                      strokeDasharray="40 100"
+                      strokeDasharray="100 100"
                       strokeDashoffset="0"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="14"
-                      fill="none"
-                      stroke="#06B6D4"
-                      strokeWidth="4"
-                      strokeDasharray="30 100"
-                      strokeDashoffset="-40"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="14"
-                      fill="none"
-                      stroke="#10B981"
-                      strokeWidth="4"
-                      strokeDasharray="20 100"
-                      strokeDashoffset="-70"
                       strokeLinecap="round"
                     />
                   </svg>
@@ -586,57 +577,93 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Legend */}
+                {/* Legend dynamically loaded from real category data */}
                 <div className="flex-1 space-y-3 w-full">
-                  {[
-                    { label: 'Pro SaaS Member', size: '3.2 GB', pct: '39.6%', color: 'bg-purple-500' },
-                    { label: 'Free Tier Hosts', size: '2.4 GB', pct: '29.2%', color: 'bg-cyan-500' },
-                    { label: 'Enterprise Vaults', size: '1.8 GB', pct: '22.2%', color: 'bg-emerald-500' },
-                    { label: 'Guest QR Drops', size: '750 MB', pct: '9.0%', color: 'bg-amber-500' },
-                  ].map((row, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${row.color}`} />
-                        <span className="text-slate-300 font-medium">{row.label}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-slate-400 font-mono">{row.size}</span>
-                        <span className="text-white font-bold">{row.pct}</span>
-                      </div>
+                  {stats.mediaByCategory && stats.mediaByCategory.length > 0 ? (
+                    stats.mediaByCategory.map((cat, idx) => {
+                      const colors = ['bg-purple-500', 'bg-cyan-500', 'bg-emerald-500', 'bg-amber-500', 'bg-pink-500'];
+                      const color = colors[idx % colors.length];
+                      const totalBytes = stats.totalStorageConsumption || 1;
+                      const pct = ((cat.totalBytes / totalBytes) * 100).toFixed(1);
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
+                            <span className="text-slate-300 font-medium capitalize">{cat._id || 'Images'}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-400 font-mono">{formatBytes(cat.totalBytes)}</span>
+                            <span className="text-white font-bold">{pct}%</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-xs text-slate-500 py-4">No media uploaded yet</div>
+                  )}
+
+                  {/* Real Plan Breakdown */}
+                  <div className="pt-2 border-t border-white/5 space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                      Accounts by Plan
+                    </span>
+                    <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
+                      {stats.usersByPlan && stats.usersByPlan.length > 0 ? (
+                        stats.usersByPlan.map((p, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[11px] capitalize">
+                            {p._id}: <strong className="text-white">{p.count}</strong>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">Free Tier: {stats.totalUsers || 0}</span>
+                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* User Acquisition & Drop Funnel (Matching Reference) */}
+            {/* Platform Activity Pipeline (Real Funnel) */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#0B0F19] border border-white/10 space-y-6 shadow-xl">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-white">Visitor & Upload Pipeline</h3>
-                <span className="text-xs text-emerald-400 font-bold">Conversion Rate: 4.0%</span>
+                <h3 className="text-base font-bold text-white">Platform Activity Pipeline</h3>
+                <span className="text-xs text-emerald-400 font-bold">
+                  {stats.totalUsers > 0
+                    ? `${(stats.totalFiles / Math.max(1, stats.totalUsers)).toFixed(1)} Files/User Avg`
+                    : 'Active'}
+                </span>
               </div>
 
               {/* Stages row */}
               <div className="grid grid-cols-4 gap-2 text-center text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">1. Visitors</span>
-                  <span className="text-base font-black text-white mt-0.5 block">45,639</span>
+                  <span className="text-slate-400 block text-[11px]">1. Total Users</span>
+                  <span className="text-base font-black text-white mt-0.5 block">{stats.totalUsers || 0}</span>
                   <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-300">100%</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">2. Signups</span>
-                  <span className="text-base font-black text-white mt-0.5 block">9,482</span>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-cyan-500/20 text-[10px] text-cyan-300">20.7%</span>
+                  <span className="text-slate-400 block text-[11px]">2. Active</span>
+                  <span className="text-base font-black text-white mt-0.5 block">{stats.activeUsers ?? stats.totalUsers ?? 0}</span>
+                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-cyan-500/20 text-[10px] text-cyan-300">
+                    {stats.totalUsers > 0
+                      ? Math.round(((stats.activeUsers ?? stats.totalUsers) / stats.totalUsers) * 100)
+                      : 100}
+                    %
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">3. Uploaders</span>
-                  <span className="text-base font-black text-white mt-0.5 block">4,126</span>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-purple-500/20 text-[10px] text-purple-300">43.5%</span>
+                  <span className="text-slate-400 block text-[11px]">3. Collections</span>
+                  <span className="text-base font-black text-white mt-0.5 block">{stats.totalCollections || 0}</span>
+                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-purple-500/20 text-[10px] text-purple-300">
+                    {stats.totalCollections} Vaults
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">4. Active Hosts</span>
-                  <span className="text-base font-black text-white mt-0.5 block">1,842</span>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-[10px] text-emerald-300">44.6%</span>
+                  <span className="text-slate-400 block text-[11px]">4. Media Files</span>
+                  <span className="text-base font-black text-white mt-0.5 block">{stats.totalFiles || 0}</span>
+                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-[10px] text-emerald-300">
+                    {stats.totalFiles} Uploads
+                  </span>
                 </div>
               </div>
 
@@ -659,69 +686,89 @@ export const AdminDashboard = () => {
               </div>
 
               <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Visitor-to-Event Drop Retention</span>
-                <span className="font-bold text-white">4.0% Overall</span>
+                <span className="text-slate-400">Database Storage Breakdown</span>
+                <span className="font-bold text-white">
+                  {stats.totalFiles || 0} Total Photos · {formatBytes(stats.totalStorageConsumption || 0)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Bottom Row: Channels, Feature Usage, and Recent Account Activity */}
+          {/* Bottom Row: Real Channels, Real Operations Breakdown, and Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Top Event Categories / Channels */}
+            {/* Top Event Categories from Database */}
             <div className="p-6 rounded-3xl bg-[#0B0F19] border border-white/10 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white">Top Event Categories</h3>
-                <span className="text-[10px] text-slate-400">Visitors</span>
+                <span className="text-[10px] text-slate-400">Live Database</span>
               </div>
               <div className="space-y-3">
-                {[
-                  { name: 'Weddings & Receptions', count: '12,500', width: '90%', color: 'from-purple-500 to-indigo-500' },
-                  { name: 'Corporate & Summits', count: '8,430', width: '65%', color: 'from-cyan-500 to-blue-500' },
-                  { name: 'Birthday Parties', count: '6,120', width: '45%', color: 'from-emerald-500 to-teal-500' },
-                  { name: 'College Festivals', count: '4,320', width: '32%', color: 'from-amber-500 to-orange-500' },
-                  { name: 'Travel Expeditions', count: '3,210', width: '24%', color: 'from-pink-500 to-rose-500' },
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-300 font-medium">{item.name}</span>
-                      <span className="text-slate-400 font-mono text-[11px]">{item.count}</span>
-                    </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r ${item.color} rounded-full`}
-                        style={{ width: item.width }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                {stats.collectionCategories && stats.collectionCategories.length > 0 ? (
+                  stats.collectionCategories.map((item, idx) => {
+                    const gradients = [
+                      'from-purple-500 to-indigo-500',
+                      'from-cyan-500 to-blue-500',
+                      'from-emerald-500 to-teal-500',
+                      'from-amber-500 to-orange-500',
+                      'from-pink-500 to-rose-500',
+                    ];
+                    const color = gradients[idx % gradients.length];
+                    const maxCount = Math.max(...stats.collectionCategories.map((c) => c.count || 1));
+                    const widthPct = Math.max(15, Math.round((item.count / maxCount) * 100));
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-300 font-medium capitalize">{item._id}</span>
+                          <span className="text-slate-400 font-mono text-[11px]">
+                            {item.count} collection(s) · {item.totalFiles || 0} file(s)
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${color} rounded-full`}
+                            style={{ width: `${widthPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-xs text-slate-500 py-4">No collections created yet</div>
+                )}
               </div>
             </div>
 
-            {/* Events & Feature Breakdown */}
+            {/* Real Platform Operations Breakdown */}
             <div className="p-6 rounded-3xl bg-[#0B0F19] border border-white/10 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white">Platform Operations Breakdown</h3>
+                <h3 className="text-sm font-bold text-white">Platform Operations & Health</h3>
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
-                  <span className="text-2xl font-black text-cyan-400">40%</span>
-                  <span className="text-xs text-slate-300 block font-semibold">Face Matching</span>
-                  <span className="text-[10px] text-slate-500">YuNet + SFace</span>
+                  <span className="text-lg font-black text-cyan-400">ACTIVE</span>
+                  <span className="text-xs text-slate-300 block font-semibold">AI Vision Engine</span>
+                  <span className="text-[10px] text-slate-500">YuNet + Gemini</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
-                  <span className="text-2xl font-black text-purple-400">28%</span>
-                  <span className="text-xs text-slate-300 block font-semibold">Instant QR Drop</span>
-                  <span className="text-[10px] text-slate-500">Real-time sync</span>
+                  <span className="text-lg font-black text-purple-400">
+                    {stats.cloudinary?.isConfigured ? 'CONNECTED' : 'LOCAL'}
+                  </span>
+                  <span className="text-xs text-slate-300 block font-semibold">Cloud CDN</span>
+                  <span className="text-[10px] text-slate-500">{stats.cloudinary?.cloudName || 'Storage Ready'}</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
-                  <span className="text-2xl font-black text-emerald-400">18%</span>
-                  <span className="text-xs text-slate-300 block font-semibold">Photobook Views</span>
-                  <span className="text-[10px] text-slate-500">Auto-curated</span>
+                  <span className="text-lg font-black text-emerald-400">
+                    {stats.pendingRequests ?? storageRequests.length ?? 0}
+                  </span>
+                  <span className="text-xs text-slate-300 block font-semibold">Storage Requests</span>
+                  <span className="text-[10px] text-slate-500">{stats.approvedRequests ?? 0} Approved</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
-                  <span className="text-2xl font-black text-amber-400">14%</span>
-                  <span className="text-xs text-slate-300 block font-semibold">Cloud Sync</span>
-                  <span className="text-[10px] text-slate-500">Cloudinary CDN</span>
+                  <span className="text-lg font-black text-amber-400">
+                    {stats.actionBreakdown?.reduce((a, b) => a + b.count, 0) || auditLogs.length}
+                  </span>
+                  <span className="text-xs text-slate-300 block font-semibold">Security Audits</span>
+                  <span className="text-[10px] text-slate-500">Real-time log</span>
                 </div>
               </div>
             </div>

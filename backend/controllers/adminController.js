@@ -13,18 +13,73 @@ import { cloudinaryService } from '../services/cloudinaryService.js';
 export const getAdminOverview = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const suspendedUsers = await User.countDocuments({ isActive: false });
     const totalCollections = await Collection.countDocuments();
     const totalFiles = await File.countDocuments();
+    const aiAnalyzedFiles = await File.countDocuments({ aiStatus: 'analyzed' });
 
+    // Real Storage Aggregations
     const storageAgg = await User.aggregate([
-      { $group: { _id: null, totalUsed: { $sum: '$storageUsed' } } },
+      { $group: { _id: null, totalUsed: { $sum: '$storageUsed' }, totalAllocated: { $sum: '$storageQuota' } } },
     ]);
     const totalStorageConsumption = storageAgg[0]?.totalUsed || 0;
+    const totalAllocatedQuota = storageAgg[0]?.totalAllocated || 0;
 
+    // Real Downloads and Scans
     const downloadAgg = await Collection.aggregate([
-      { $group: { _id: null, totalDownloads: { $sum: '$downloadCount' } } },
+      { $group: { _id: null, totalDownloads: { $sum: '$downloadCount' }, totalScans: { $sum: '$scanCount' } } },
     ]);
     const totalDownloads = downloadAgg[0]?.totalDownloads || 0;
+    const totalScans = downloadAgg[0]?.totalScans || 0;
+
+    // Real Media Categories Breakdown from MongoDB
+    const mediaByCategory = await File.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ['$metadata.aiCategory', { $ifNull: ['$category', 'image'] }] },
+          count: { $sum: 1 },
+          totalBytes: { $sum: '$fileSize' },
+        },
+      },
+      { $sort: { totalBytes: -1 } },
+    ]);
+
+    // Real Collection Categories Breakdown from MongoDB
+    const collectionCategories = await Collection.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ['$category', 'general'] },
+          count: { $sum: 1 },
+          totalFiles: { $sum: '$totalFiles' },
+          totalScans: { $sum: '$scanCount' },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 6 },
+    ]);
+
+    // Real Users Breakdown by Plan
+    const usersByPlan = await User.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ['$plan', 'free'] },
+          count: { $sum: 1 },
+          storageUsed: { $sum: '$storageUsed' },
+        },
+      },
+    ]);
+
+    // Storage Requests
+    const pendingRequests = await StorageRequest.countDocuments({ status: 'pending' });
+    const approvedRequests = await StorageRequest.countDocuments({ status: 'approved' });
+
+    // Real Audit Log Operations Breakdown
+    const actionAgg = await AuditLog.aggregate([
+      { $group: { _id: '$action', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 4 },
+    ]);
 
     const activeSubscriptions = await Subscription.countDocuments({ status: 'active' });
 
@@ -46,11 +101,22 @@ export const getAdminOverview = async (req, res) => {
       success: true,
       stats: {
         totalUsers,
+        activeUsers,
+        suspendedUsers,
         totalCollections,
         totalFiles,
+        aiAnalyzedFiles,
         totalStorageConsumption,
+        totalAllocatedQuota,
         totalDownloads,
+        totalScans,
         activeSubscriptions,
+        pendingRequests,
+        approvedRequests,
+        mediaByCategory,
+        collectionCategories,
+        usersByPlan,
+        actionBreakdown: actionAgg,
       },
       systemHealth,
       recentAuditLogs,

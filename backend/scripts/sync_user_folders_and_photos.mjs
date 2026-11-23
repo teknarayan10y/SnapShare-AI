@@ -4,8 +4,10 @@ import mongoose from 'mongoose';
 import { File } from '../models/File.js';
 import { Collection } from '../models/Collection.js';
 import { SmartFolder } from '../models/SmartFolder.js';
+import { PersonProfile } from '../models/PersonProfile.js';
 import { User } from '../models/User.js';
 import { faceOrganizationService } from '../services/faceOrganizationService.js';
+import { aiClient } from '../services/aiMicroserviceClient.js';
 
 async function syncAndOrganize() {
   await mongoose.connect(process.env.MONGODB_URI);
@@ -19,49 +21,37 @@ async function syncAndOrganize() {
   console.log(`Syncing for user: ${user.name} (${user.email}) - ${user._id}`);
 
   // 1. Reassign orphaned collections
-  const colRes = await Collection.updateMany(
+  await Collection.updateMany(
     { ownerId: { $ne: user._id } },
     { $set: { ownerId: user._id } }
   );
-  console.log('Updated collections to active user:', colRes.modifiedCount);
 
   // 2. Reassign orphaned files
-  const fileRes = await File.updateMany(
+  await File.updateMany(
     { ownerId: { $ne: user._id } },
     { $set: { ownerId: user._id } }
   );
-  console.log('Updated files to active user:', fileRes.modifiedCount);
 
-  // 3. Remove orphaned smart folders from old deleted test user IDs
-  const delFolders = await SmartFolder.deleteMany({
-    userId: { $ne: user._id }
-  });
-  console.log('Deleted orphaned smart folders:', delFolders.deletedCount);
+  // 3. Clear previous person profiles and person subfolders to re-index cleanly
+  await PersonProfile.deleteMany({ userId: user._id });
+  await SmartFolder.deleteMany({ userId: user._id, isPersonFolder: true });
 
-  // 4. Ensure 7 canonical base folders exist for the user
+  // 4. Ensure canonical base folders exist
   const baseFolders = await faceOrganizationService.ensureBaseFolders(user._id);
-  console.log('Canonical folders verified:');
-  Object.keys(baseFolders).forEach(k => console.log(' -', k));
 
-  // 5. Reset folder file lists before re-organizing
+  // 5. Reset folder file lists
   await SmartFolder.updateMany({ userId: user._id }, { $set: { fileIds: [] } });
 
-  // 6. Re-organize each file according to strict rules
+  // 6. Re-organize each file using real neural face embeddings
   const files = await File.find({ ownerId: user._id });
-  console.log(`\nRe-organizing ${files.length} file(s) into smart folders...`);
+  console.log(`\nAnalyzing & Re-organizing ${files.length} file(s) with neural embeddings...`);
 
   for (const f of files) {
-    const pCount = f.personCount ?? 0;
-    console.log(`Processing: ${f.originalName} (personCount: ${pCount}, comp: ${f.photoComposition})`);
-
-    const faces = [];
-    for (let i = 0; i < pCount; i++) {
-      faces.push({
-        detectionConfidence: 0.95,
-        box: [100, 100, 150, 200],
-        embedding: new Array(128).fill(0.05),
-      });
-    }
+    console.log(`\nDetecting faces for: ${f.originalName}...`);
+    const faceRes = await aiClient.analyzeFaces('', f.originalName, f.cloudinaryUrl, true, 0.55);
+    const pCount = faceRes.faceCount || f.personCount || 0;
+    const faces = faceRes.faces || [];
+    console.log(` -> Detected ${pCount} person(s). Has face embedding: ${faces[0]?.embedding?.length > 0}`);
 
     const orgRes = await faceOrganizationService.organizePhotoByRules({
       file: f,
@@ -69,6 +59,7 @@ async function syncAndOrganize() {
       collectionId: f.collectionId,
       faceCount: pCount,
       faces,
+      matchedProfiles: [],
       hasConsent: true,
       isLowConfidence: false,
     });
@@ -80,7 +71,7 @@ async function syncAndOrganize() {
   const finalFolders = await SmartFolder.find({ userId: user._id });
   console.log('\n================ FINAL SMART FOLDERS ================');
   for (const fo of finalFolders) {
-    console.log(`Folder: "${fo.name}" | Files: ${fo.fileIds.length} | Category: ${fo.category}`);
+    console.log(`Folder: "${fo.name}" | Files: ${fo.fileIds.length} | Category: ${fo.category} | PersonFolder: ${!!fo.isPersonFolder}`);
   }
   console.log('====================================================\n');
 

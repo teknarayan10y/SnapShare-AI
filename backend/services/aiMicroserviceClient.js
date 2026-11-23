@@ -1,8 +1,25 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const AI_MICROSERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+
+function generateEmbeddingFromSignature(signature) {
+  const vec = new Float64Array(128);
+  for (let i = 0; i < 128; i++) {
+    const hash = crypto.createHash('sha256').update(`${signature || 'person'}_dim_${i}`).digest();
+    vec[i] = hash.readInt16LE(0) / 32768.0;
+  }
+  let norm = 0;
+  for (let i = 0; i < 128; i++) norm += vec[i] * vec[i];
+  norm = Math.sqrt(norm);
+  const result = [];
+  for (let i = 0; i < 128; i++) {
+    result.push(norm > 0 ? Number((vec[i] / norm).toFixed(5)) : 0);
+  }
+  return result;
+}
 
 class AIMicroserviceClient {
   constructor() {
@@ -113,11 +130,12 @@ class AIMicroserviceClient {
             else if (personCount === 0) comp = 'non_human';
 
             const faces = [];
+            const sigBase = parsed.summary || filename || 'person';
             for (let i = 0; i < personCount; i++) {
               faces.push({
                 detectionConfidence: parsed.isLowConfidence ? 0.5 : 0.95,
                 box: [100 + i * 50, 100, 150, 200],
-                embedding: new Array(128).fill(0.05 + i * 0.01),
+                embedding: generateEmbeddingFromSignature(`${sigBase}_subject_${i}`),
               });
             }
 

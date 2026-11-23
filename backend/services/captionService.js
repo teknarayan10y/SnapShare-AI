@@ -12,7 +12,7 @@
 import { generatePhotoSpecificCaption } from '../utils/captionGenerator.js';
 import { File } from '../models/File.js';
 
-const GEMINI_MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.8-flash'];
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest'];
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 const FETCH_TIMEOUT_MS = 25000;
 
